@@ -15,5 +15,8 @@
 #include <atomic>
 #include <new>
 #include <sstream>
+#include <shared_mutex>
+#include <mutex>
+#include <thread>
 
 #endif /* #ifndef COMMON_INCLUDE_ */

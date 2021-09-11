@@ -10,7 +10,10 @@ thread_pool_test: thread_pool.cpp thread_pool_test.cpp $(HEADERS)
 resp_parser_test: resp_parser.cpp resp_parser_test.cpp $(HEADERS)
 	$(CPP) resp_parser.cpp  resp_parser_test.cpp -o resp_parser_test $(LDFLAGS)
 
-test: resp_parser_test thread_pool_test 
+ds_tests: DataStore.cpp DataStoreTest.cpp $(HEADERS)
+	$(CPP) DataStore.cpp DataStoreTest.cpp -o ds_tests $(LDFLAGS)
+
+test: ds_tests resp_parser_test thread_pool_test 
 
 
 clean:
