@@ -72,6 +72,9 @@ void ThreadPool::loop()
     bool        lock_held       = false;
     int         err             = 0;
 
+    if (m_is_debug)
+        std::cout << "Thread " << pthread_self() << " waiting for work." << std::endl;
+
     while(true)
     {
         if (m_is_debug_verbose)
@@ -209,12 +212,15 @@ void ThreadPool::destroy()
 
 
 ThreadPool* ThreadPoolFactory::create_thread_pool(
-                int num_threads)
+                int num_threads,
+                bool is_debug)
 {
     ThreadPool* pool = new ThreadPool();
 
     if (!pool)
         return nullptr;
+
+    pool->m_is_debug = is_debug;
 
     for (int i = 0; i < num_threads; i++)
     {

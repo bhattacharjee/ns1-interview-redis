@@ -103,7 +103,7 @@ public:
 class ThreadPoolFactory
 {
 public:
-    ThreadPool* create_thread_pool(int num_threads);
+    ThreadPool* create_thread_pool(int num_threads, bool is_debug);
 };
 
 #endif /* #ifndef THREAD_POOL_ */
