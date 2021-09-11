@@ -19,7 +19,9 @@ typedef enum {
     ERROR_INVALID_NUMBER,
     ERROR_CRLF_MISSING,
     ERROR_STRING_CONTAINS_CRLF,
-    ERROR_NO_MEMORY
+    ERROR_NO_MEMORY,
+    ERROR_INVALID_ARRAY_LENGTH,
+    ERROR_NOT_IMPLEMENTED,
 } resp_parse_error_t;
 
 class RespParserState
@@ -113,6 +115,20 @@ public:
 
         return result;
     }
+
+    resp_parse_error_t append(std::shared_ptr<AbstractRespObject> obj)
+    {
+        try
+        {
+            m_value.push_back(obj);
+        }
+        catch(...)
+        {
+            return ERROR_NO_MEMORY;
+        }
+        
+        return ERROR_SUCCESS;
+    }
 };
 
 class RespParser
@@ -150,6 +166,9 @@ public:
     // TODO: Implement this
     std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
         get_string_object();
+
+    std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
+        get_array_object();
 
 };
 
