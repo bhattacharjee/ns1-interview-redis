@@ -2,6 +2,7 @@
 #define RESP_OBJECT_
 
 #include "common_include.h"
+#include <cassert>
 
 typedef enum {
     RESP_INVALID = 0,
@@ -44,7 +45,41 @@ public:
 
     virtual std::string to_string() = 0;
 
+    virtual std::string serialize() = 0;
+
     resp_datatype_t get_type() { return m_datatype; }
+};
+
+class RespInteger: public AbstractRespObject
+{
+public:
+    int                 m_value;
+
+    RespInteger(int x)
+    {
+        m_datatype = RESP_INTEGER;
+        m_is_aggregate = false;
+        m_value = x;
+    }
+
+    std::string to_string()
+    {
+        std::stringstream ss;
+        ss << m_value;
+        return ss.str();
+    }
+
+    std::string serialize()
+    {
+        std::stringstream ss;
+        ss << ":" << m_value << "\r\n";
+        return ss.str();
+    }
+
+    void set_value(int x)
+    {
+        m_value = x;
+    }
 };
 
 class RespString: public AbstractRespObject
@@ -64,6 +99,13 @@ public:
     {
         return m_value;
     }
+
+    std::string serialize()
+    {
+        std::stringstream ss;
+        ss << "+" << m_value << "\r\n";
+        return ss.str();
+    }
 };
 
 class RespBulkString: public AbstractRespObject
@@ -71,18 +113,36 @@ class RespBulkString: public AbstractRespObject
 public:
     /* The bulk string value */
     std::string             m_value;
+    bool                    m_isnull;
 
     RespBulkString(std::string s):
         m_value(s)
     {
         m_is_aggregate = false;
         m_datatype = RESP_BULK_STRING;
+        m_isnull = false;
     }
     
+    void set_null(bool isnull)
+    {
+        m_isnull = isnull;
+    }
+
     virtual std::string to_string()
     {
-        return m_value;
-    }   
+        return m_isnull ? "nil": m_value;
+    }
+
+    std::string serialize()
+    {
+        if (m_isnull)
+            return "$-1\r\n";
+
+        std::stringstream ss;
+        ss << "$" << m_value.length() << "\r\n";
+        ss << m_value << "\r\n";
+        return ss.str();
+    }
 };
 
 class RespArray: public AbstractRespObject
@@ -128,6 +188,33 @@ public:
         }
         
         return ERROR_SUCCESS;
+    }
+
+    std::string serialize();
+};
+
+class RespError: AbstractRespObject
+{
+public:
+    std::string     m_value;
+
+    RespError(std::string s)
+    {
+        m_is_aggregate = false;
+        m_datatype = RESP_ERROR;
+        m_value = s;
+    }
+
+    std::string to_string()
+    {
+        return m_value;
+    }
+
+    std::string serialize()
+    {
+        std::stringstream ss;
+        ss << "-" << m_value << "\r\n";
+        return ss.str();
     }
 };
 

@@ -14,5 +14,6 @@
 #include <cerrno>
 #include <atomic>
 #include <new>
+#include <sstream>
 
 #endif /* #ifndef COMMON_INCLUDE_ */

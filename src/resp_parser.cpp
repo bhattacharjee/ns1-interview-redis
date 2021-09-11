@@ -263,3 +263,14 @@ RespParser::get_generic_object()
             }
     }
 }
+
+std::string RespArray::serialize()
+{
+    std::stringstream ss;
+
+    ss << "*" << m_value.size() << "\r\n";
+    for (auto p: m_value)
+        ss << p->serialize();
+
+    return ss.str();
+}
