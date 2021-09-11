@@ -4,10 +4,14 @@ CPPFLAGS = -std=c++17
 CPP = c++ $(CPPFLAGS)
 
 
-thread_pool_test: thread_pool.cpp $(HEADERS)
+thread_pool_test: thread_pool.cpp thread_pool_test.cpp $(HEADERS)
 	$(CPP) thread_pool_test.cpp thread_pool.cpp -o thread_pool_test $(LDFLAGS)
 
-test: thread_pool_test
+resp_parser_test: resp_parser.cpp resp_parser_test.cpp $(HEADERS)
+	$(CPP) resp_parser.cpp  resp_parser_test.cpp -o resp_parser_test $(LDFLAGS)
+
+test: resp_parser_test thread_pool_test 
+
 
 clean:
 	rm -f thread_pool_test *.o
