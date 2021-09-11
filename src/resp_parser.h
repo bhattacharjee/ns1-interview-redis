@@ -16,7 +16,8 @@ typedef enum {
     ERROR_SUCCESS,
     ERROR_CURRENT_BEYOND_END,
     ERROR_INVALID_TYPE,
-    ERROR_INVALID_NUMBER
+    ERROR_INVALID_NUMBER,
+    ERROR_CRLF_MISSING
 } resp_parse_error_t;
 
 class RespParserState
@@ -132,6 +133,7 @@ public:
     std::tuple<resp_parse_error_t, int> get_type();
 
     resp_parse_error_t skip_crlf();
+
 
 };
 

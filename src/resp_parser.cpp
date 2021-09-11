@@ -59,8 +59,20 @@ RespParser::get_length()
 resp_parse_error_t
 RespParser::skip_crlf()
 {
-    if (m_state.current >= m_state.end)
+    char* current = m_state.current;
+    if (current >= m_state.end)
         return ERROR_CURRENT_BEYOND_END;
     
+    if ('\r' != *current++)
+        return ERROR_CRLF_MISSING;
+
+    if (current >= m_state.end)
+        return ERROR_CURRENT_BEYOND_END;
+
+    if ('\n' != *current++)
+        return ERROR_CRLF_MISSING;
+
+    m_state.current = current;
+
     return ERROR_SUCCESS;
 }

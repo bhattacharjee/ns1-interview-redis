@@ -53,7 +53,7 @@ void basic_tests()
 
 void length_test()
 {
-    std::cout << std::endl << "Tests to validate the length";
+    std::cout << std::endl << "Tests to validate the length" << std::endl;
 
     {
         RespParser t1("*2M");
@@ -101,8 +101,25 @@ void length_test()
    }
 }
 
+void test_crlf()
+{
+    std::cout << std::endl << "Tests to validate the CRLF parsing" << std::endl;
+    {
+        RespParser t1("\r\nM");
+        auto err = t1.skip_crlf();
+        TEST(ERROR_SUCCESS == err, "CRLF should be found where it is available");
+        TEST('M' == *t1.m_state.current, "current should be updated properly");
+    }
+    {
+        RespParser t1("\rM");
+        auto err = t1.skip_crlf();
+        TEST(ERROR_SUCCESS != err, "CRLF should not be found where it is unavailable");
+    }
+}
+
 int main(int argc, char** argv)
 {
     basic_tests();
     length_test();
+    test_crlf();
 }
