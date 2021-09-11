@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <pthread.h>
-#include "DataStore.h"
+#include "data_store.h"
 
 #define TEST(x, y) {\
     if (!(x))\

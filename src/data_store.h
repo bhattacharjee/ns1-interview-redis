@@ -1,5 +1,5 @@
-#ifndef DATASTORE_H_
-#define DATASTORE_H_
+#ifndef DATA_STORE_H_
+#define DATA_STORE_H_
 
 #include "common_include.h"
 
@@ -32,4 +32,4 @@ public:
     }
 };
 
-#endif /* #ifndef DATASTORE_H_ */
+#endif /* #ifndef DATA_STORE_H_ */
