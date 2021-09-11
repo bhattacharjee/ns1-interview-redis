@@ -10,5 +10,8 @@
 #include <tuple>
 #include <memory>
 #include <algorithm>
+#include <deque>
+#include <cerrno>
+#include <atomic>
 
 #endif /* #ifndef COMMON_INCLUDE_ */
