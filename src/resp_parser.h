@@ -16,6 +16,7 @@ typedef enum {
     ERROR_SUCCESS,
     ERROR_CURRENT_BEYOND_END,
     ERROR_INVALID_TYPE,
+    ERROR_INVALID_NUMBER
 } resp_parse_error_t;
 
 class RespParserState
@@ -114,21 +115,23 @@ public:
 class RespParser
 {
 public:
-    RespParserState                 state;
-    std::string                     parse_string;
+    RespParserState                 m_state;
+    std::string                     m_parse_string;
 
     RespParser(std::string parsestring)
     {
-        parse_string        = parsestring;
-        state.begin         = const_cast<char*>(parse_string.c_str());
-        state.end           = state.begin + parse_string.length();
-        state.current       = state.begin;
-        state.parse_error   = 0;
+        m_parse_string        = parsestring;
+        m_state.begin         = const_cast<char*>(m_parse_string.c_str());
+        m_state.end           = m_state.begin + m_parse_string.length();
+        m_state.current       = m_state.begin;
+        m_state.parse_error   = 0;
     }
 
     std::tuple<resp_parse_error_t, int> get_length();
 
     std::tuple<resp_parse_error_t, int> get_type();
+
+    resp_parse_error_t skip_crlf();
 
 };
 

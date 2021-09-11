@@ -1,14 +1,15 @@
 #include "resp_parser.h"
 
-std::tuple<resp_parse_error_t, int> RespParser::get_type()
+std::tuple<resp_parse_error_t, int>
+RespParser::get_type()
 {
     resp_datatype_t         type    = RESP_INVALID;
     resp_parse_error_t      err     = ERROR_SUCCESS;
 
-    if (state.current >= state.end)
+    if (m_state.current >= m_state.end)
         return std::make_tuple(ERROR_CURRENT_BEYOND_END, RESP_INVALID);
     
-    switch (*state.current)
+    switch (*m_state.current)
     {
         case '+':
             type = RESP_STRING;
@@ -31,8 +32,35 @@ std::tuple<resp_parse_error_t, int> RespParser::get_type()
     }
 
     if (RESP_INVALID != type && ERROR_SUCCESS == err)
-        state.current++;
+        m_state.current++;
 
     return std::make_tuple(err, type);
 }
 
+std::tuple<resp_parse_error_t, int>
+RespParser::get_length()
+{
+    char*           endptr          = nullptr;
+    long int        thenum          = 0;
+
+    if (m_state.current >= m_state.end)
+        return std::make_tuple(ERROR_CURRENT_BEYOND_END, 0);
+        
+    thenum = strtol(m_state.current, &endptr, 10);
+
+    if (thenum == 0 && (endptr == m_state.current || \
+            (*m_state.current && endptr && *endptr == 0)))
+        return std::make_tuple(ERROR_INVALID_NUMBER, 0);
+
+    m_state.current = endptr;
+    return std::make_tuple(ERROR_SUCCESS, (int)thenum);
+}
+
+resp_parse_error_t
+RespParser::skip_crlf()
+{
+    if (m_state.current >= m_state.end)
+        return ERROR_CURRENT_BEYOND_END;
+    
+    return ERROR_SUCCESS;
+}
