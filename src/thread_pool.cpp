@@ -53,7 +53,8 @@ void ThreadPool::process_job_unsafe(bool& lock_held)
 
         if (m_is_debug)
         {
-            std::cerr << "Running job " << p_job->get_job_id() << ": ";
+            std::cerr << __FILE__ << ":" << __LINE__;
+            std::cout << " Running job " << p_job->get_job_id() << ": ";
             std::cerr << p_job->get_job_description() << std::endl;
         }
 
@@ -195,7 +196,8 @@ void ThreadPool::destroy()
 
     while (m_num_threads)
     {
-        std::cerr << "Threads remaining: " << m_num_threads << std::endl;
+        if (m_is_debug)
+            std::cerr << "Threads remaining: " << m_num_threads << std::endl;
         /*
          * TODO: Improve
          *
@@ -213,7 +215,7 @@ void ThreadPool::destroy()
 
 ThreadPool* ThreadPoolFactory::create_thread_pool(
                 int num_threads,
-                bool is_debug)
+                bool is_debug = false)
 {
     ThreadPool* pool = new ThreadPool();
 

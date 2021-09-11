@@ -22,10 +22,12 @@ public:
     std::atomic<int>*   p_constructor_count;
     std::atomic<int>*   p_destructor_count;
     std::atomic<int>*   p_run_count;
+    bool                m_is_debug;
     int run()
     {
         ++(*p_run_count);
-        std::cout << "XXX: Running job in thread " << pthread_self() << std::endl;
+        if (m_is_debug)
+            std::cout << "XXX: Running job in thread " << pthread_self() << std::endl;
         sleep(1);
         return 0;
     }
@@ -33,7 +35,8 @@ public:
     ~BasicTest()
     {
         ++(*p_destructor_count);
-        std::cout << "XXX: Destroying job " << this << std::endl;
+        if (m_is_debug)
+            std::cout << "XXX: Destroying job " << this << std::endl;
     }
 
     BasicTest(
@@ -53,7 +56,9 @@ public:
 void test_jobs()
 {
     auto tpf = ThreadPoolFactory();
-    auto tp = tpf.create_thread_pool(4, true);
+    auto tp = tpf.create_thread_pool(4, false);
+
+    std::cout << std::endl << __FILE__ << ":" << __LINE__ << " Executing test 1" << std::endl;
 
     const int NUM_JOBS = 8;
 
@@ -64,13 +69,13 @@ void test_jobs()
         std::atomic<int>        job_run_count           = 0;
 
 
-        tp->m_is_debug = true;
+        tp->m_is_debug = false;
 
         for (int i = 0; i < NUM_JOBS; i++)
         {
             auto bt = new BasicTest(&job_constructor_count, &job_destructor_count, &job_run_count);
+            bt->m_is_debug = false;
             tp->add_job(std::shared_ptr<JobInterface>(bt));
-            std::cout << "Added job " << i << std::endl;
         }
 
         sleep(3);
@@ -86,9 +91,11 @@ void test_jobs()
 void test_jobs2()
 {
     auto tpf = ThreadPoolFactory();
-    auto tp = tpf.create_thread_pool(4, true);
+    auto tp = tpf.create_thread_pool(4, false);
 
     const int NUM_JOBS = 200;
+
+    std::cout << std::endl << __FILE__ << ":" << __LINE__ << " Executing test 2" << std::endl;
 
     if (tp)
     {
@@ -97,20 +104,20 @@ void test_jobs2()
         std::atomic<int>        job_run_count           = 0;
 
 
-        tp->m_is_debug = true;
+        tp->m_is_debug = false;
 
         for (int i = 0; i < NUM_JOBS; i++)
         {
             auto bt = new BasicTest(&job_constructor_count, &job_destructor_count, &job_run_count);
+            bt->m_is_debug = false;
             tp->add_job(std::shared_ptr<JobInterface>(bt));
-            std::cout << "Added job " << i << std::endl;
         }
 
         sleep(3);
         delete tp;
         sleep(2);
 
-        std::cout << job_constructor_count << " " << job_destructor_count << " " << job_run_count << std::endl;
+        //std::cout << job_constructor_count << " " << job_destructor_count << " " << job_run_count << std::endl;
         TEST(job_constructor_count && job_constructor_count == NUM_JOBS, "All constructors must be called.");
         TEST(job_destructor_count && job_destructor_count == NUM_JOBS, "All destructors must be called.");
         TEST(job_run_count && job_run_count != NUM_JOBS, "All jobs cannot run within the time frame.");
