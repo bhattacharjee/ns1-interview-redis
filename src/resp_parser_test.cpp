@@ -167,10 +167,38 @@ void test_get_string()
     }
 }
 
+void test_array()
+{
+    std::cout << std::endl << "Tests to validate array parsing" << std::endl;
+
+    {
+        RespParser t1("3\r\n$3\r\nset\r\n$1\r\nx\r\n$1\r\n1\r\nM");
+        auto [err, ret] = t1.get_array_object();
+        TEST(ERROR_SUCCESS == err, "Valid array should be parsed");
+        TEST(ret->to_string() == std::string("[set, x, 1]"), "Correct array should be returned");
+        TEST('M' == *t1.m_state.current, "current object should be properly updated.");
+    }
+}
+
+void test_generic()
+{
+    std::cout << std::endl << "Tests to validate a generic data type" << std::endl;
+
+    {
+        RespParser t1("*3\r\n$3\r\nset\r\n$1\r\nx\r\n$1\r\n1\r\nM");
+        auto [err, ret] = t1.get_generic_object();
+        TEST(ERROR_SUCCESS == err, "Valid object should be parsed");
+        TEST(ret->to_string() == std::string("[set, x, 1]"), "Correct array should be returned");
+        TEST('M' == *t1.m_state.current, "current object should be properly updated.");
+    }
+}
+
 int main(int argc, char** argv)
 {
     basic_tests();
     length_test();
     test_crlf();
     test_get_string();
+    test_array();
+    test_generic();
 }

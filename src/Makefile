@@ -1,6 +1,6 @@
 HEADERS = *.h
 LDFLAGS = -lpthread
-CPPFLAGS = -std=c++17
+CPPFLAGS = -std=c++17 -g
 CPP = c++ $(CPPFLAGS)
 
 

@@ -155,6 +155,7 @@ RespParser::get_bulk_string_object()
 std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
 RespParser::get_array_object()
 {
+
     auto [err, length] = get_length();
     if (ERROR_SUCCESS != err)
         return std::make_tuple(
@@ -162,13 +163,16 @@ RespParser::get_array_object()
             std::shared_ptr<AbstractRespObject>(nullptr));
 
     auto arrp = new (std::nothrow) RespArray();
-    auto p = std::shared_ptr<AbstractRespObject>(arrp);
-    if (!p)
-        return std::make_tuple(ERROR_NO_MEMORY, p);
+    if (!arrp)
+        return std::make_tuple(
+            ERROR_NO_MEMORY,
+            std::shared_ptr<AbstractRespObject>(nullptr));
     
     // Empty array
     if (length < 0)
-        return std::make_tuple(skip_crlf(), p);
+        return std::make_tuple(
+            skip_crlf(),
+            std::shared_ptr<AbstractRespObject>(arrp));
     
     err = skip_crlf();
     if (ERROR_SUCCESS != err)
@@ -179,7 +183,7 @@ RespParser::get_array_object()
     for (int i = 0; i < length; i++)
     {
         auto [err, type] = get_type();
-        if (ERROR_SUCCESS != type || RESP_INVALID == type)
+        if (ERROR_SUCCESS != err || RESP_INVALID == type)
         {
             return std::make_tuple(
                 err,
@@ -223,5 +227,39 @@ RespParser::get_array_object()
         }
     }
 
-    return std::make_tuple(ERROR_SUCCESS, p);
+    return std::make_tuple(
+        ERROR_SUCCESS, 
+        std::shared_ptr<AbstractRespObject>(arrp));
+}
+
+std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
+RespParser::get_generic_object()
+{
+    auto [err, type] = get_type();
+    if (ERROR_SUCCESS != err || RESP_INVALID == type)
+    {
+        return std::make_tuple(
+            err,
+            std::shared_ptr<AbstractRespObject>(nullptr)
+        );
+    }
+
+    switch(type)
+    {
+        case RESP_BULK_STRING:
+            return get_bulk_string_object();
+            break;
+        case RESP_ARRAY:
+            return get_array_object();
+            break;
+        default:
+            {
+                std::cerr << "Type " << type << " Not implemented. "\
+                        << std::endl;
+                return std::make_tuple(
+                    ERROR_NOT_IMPLEMENTED,
+                    std::shared_ptr<AbstractRespObject>(nullptr)
+                );
+            }
+    }
 }

@@ -170,6 +170,9 @@ public:
     std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
         get_array_object();
 
+    std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
+        get_generic_object();
+
 };
 
 #endif /* #ifndef RESP_OBJECT_ */
