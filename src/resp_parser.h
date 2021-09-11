@@ -190,7 +190,16 @@ public:
         return ERROR_SUCCESS;
     }
 
-    std::string serialize();
+    std::string serialize()
+    {
+        std::stringstream ss;
+
+        ss << "*" << m_value.size() << "\r\n";
+        for (auto p: m_value)
+            ss << p->serialize();
+
+        return ss.str();
+    }
 };
 
 class RespError: AbstractRespObject
@@ -241,7 +250,7 @@ public:
 
 
     std::tuple<resp_parse_error_t, std::string>
-        get_bulk_string_internal();
+        get_bulk_string_internal(int& stringlength);
 
     std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
         get_bulk_string_object();

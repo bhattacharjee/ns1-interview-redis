@@ -78,13 +78,15 @@ RespParser::skip_crlf()
 }
 
 std::tuple<resp_parse_error_t, std::string>
-RespParser::get_bulk_string_internal()
+RespParser::get_bulk_string_internal(int& stringlength)
 {
     std::string retval;
 
     auto [err2, length] = get_length();
     if (ERROR_SUCCESS != err2)
         return std::make_tuple(err2, retval);
+    
+    stringlength = length;
     
     auto err = skip_crlf();
     if (ERROR_SUCCESS != err)
@@ -133,8 +135,10 @@ RespParser::get_bulk_string_internal()
 std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
 RespParser::get_bulk_string_object()
 {
+    int stringlength = 0;
+
     resp_parse_error_t error = ERROR_SUCCESS;
-    auto [err, thestring] = get_bulk_string_internal();
+    auto [err, thestring] = get_bulk_string_internal(stringlength);
     if (ERROR_SUCCESS != err)
     {
         return std::make_tuple(
@@ -143,9 +147,13 @@ RespParser::get_bulk_string_object()
         );
     }
 
-    AbstractRespObject* p = new (std::nothrow) RespBulkString(thestring);
+    RespBulkString* p = new (std::nothrow) RespBulkString(thestring);
     if (!p)
         error = ERROR_NO_MEMORY;
+    
+    if (stringlength < 0)
+        p->set_null(true);
+        
     return std::make_tuple(
         error,
         std::shared_ptr<AbstractRespObject>(p)
@@ -262,15 +270,4 @@ RespParser::get_generic_object()
                 );
             }
     }
-}
-
-std::string RespArray::serialize()
-{
-    std::stringstream ss;
-
-    ss << "*" << m_value.size() << "\r\n";
-    for (auto p: m_value)
-        ss << p->serialize();
-
-    return ss.str();
 }

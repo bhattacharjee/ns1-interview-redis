@@ -121,38 +121,39 @@ void test_get_string()
 {
     std::cout << std::endl << "Tests to validate string parsing" << std::endl;
 
+    int stringlength;
     {
         RespParser t1("3\r\ndel\r\nM");
-        auto [err, ret] = t1.get_bulk_string_internal();
+        auto [err, ret] = t1.get_bulk_string_internal(stringlength);
         TEST(ERROR_SUCCESS == err, "Parsing a valid string should succeed");
         TEST(ret == std::string("del"), "The actual string should be retrieved");
         TEST('M' == *t1.m_state.current, "current should be updated properly");
     }
     {
         RespParser t1("2\r\ndel\r\nM");
-        auto [err, ret] = t1.get_bulk_string_internal();
+        auto [err, ret] = t1.get_bulk_string_internal(stringlength);
         TEST(ERROR_SUCCESS != err, "Parsing a invalid string should fail");
     }
     {
         RespParser t1("4\r\ndel\r\nM");
-        auto [err, ret] = t1.get_bulk_string_internal();
+        auto [err, ret] = t1.get_bulk_string_internal(stringlength);
         TEST(ERROR_SUCCESS != err, "Parsing a invalid string should fail");
     }
     {
         RespParser t1("0\r\ndel\r\nM");
-        auto [err, ret] = t1.get_bulk_string_internal();
+        auto [err, ret] = t1.get_bulk_string_internal(stringlength);
         TEST(ERROR_SUCCESS != err, "Parsing a invalid string should fail");
     }
     {
         RespParser t1("0\r\n\r\nM");
-        auto [err, ret] = t1.get_bulk_string_internal();
+        auto [err, ret] = t1.get_bulk_string_internal(stringlength);
         TEST(ERROR_SUCCESS == err, "Parsing a valid string should succeed");
         TEST(ret == std::string(""), "The actual empty string should be retrieved");
         TEST('M' == *t1.m_state.current, "current should be updated properly");
     }
     {
         RespParser t1("-1\r\nM");
-        auto [err, ret] = t1.get_bulk_string_internal();
+        auto [err, ret] = t1.get_bulk_string_internal(stringlength);
         TEST(ERROR_SUCCESS == err, "Parsing a valid string should succeed");
         TEST(ret == std::string(""), "The actual empty string should be retrieved");
         TEST('M' == *t1.m_state.current, "current should be updated properly");
@@ -164,6 +165,15 @@ void test_get_string()
         TEST(ret, "OBJ: on success, the object should be returned");
         TEST(ret->to_string() == std::string("del"), "OBJ: The actual string should be retrieved");
         TEST('M' == *t1.m_state.current, "OBJ: current should be updated properly");
+    }
+    {
+        RespParser t1("$-1\r\n");
+        auto [err, ret] = t1.get_generic_object();
+        TEST(ERROR_SUCCESS == err, "OBJ: Parsing a valid string should succeed");
+        TEST(!!ret, "return value should not be null");
+        RespBulkString* p = static_cast<RespBulkString*>(ret.get());
+        TEST(true == p->m_isnull, "NULL string should be stored as null");
+        TEST(p->serialize() == std::string("$-1\r\n"), "Should get original null string back");
     }
 }
 
@@ -270,4 +280,6 @@ int main(int argc, char** argv)
     test_bulk_string_serialization();
     test_error();
     test_array_serialization();
+
+    std::cout << std::endl << "All tests passed" << std::endl;
 }
