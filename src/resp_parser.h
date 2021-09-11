@@ -17,7 +17,9 @@ typedef enum {
     ERROR_CURRENT_BEYOND_END,
     ERROR_INVALID_TYPE,
     ERROR_INVALID_NUMBER,
-    ERROR_CRLF_MISSING
+    ERROR_CRLF_MISSING,
+    ERROR_STRING_CONTAINS_CRLF,
+    ERROR_NO_MEMORY
 } resp_parse_error_t;
 
 class RespParserState
@@ -68,14 +70,14 @@ public:
     /* The bulk string value */
     std::string             m_value;
 
-    RespBulkString(const std::string& s):
+    RespBulkString(std::string s):
         m_value(s)
     {
         m_is_aggregate = false;
         m_datatype = RESP_BULK_STRING;
     }
     
-    std::string to_string()
+    virtual std::string to_string()
     {
         return m_value;
     }   
@@ -134,6 +136,20 @@ public:
 
     resp_parse_error_t skip_crlf();
 
+
+    std::tuple<resp_parse_error_t, std::string>
+        get_bulk_string_internal();
+
+    std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
+        get_bulk_string_object();
+
+    // TODO: Implement this
+    std::tuple<resp_parse_error_t, std::string>
+        get_string_internal();
+
+    // TODO: Implement this
+    std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
+        get_string_object();
 
 };
 

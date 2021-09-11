@@ -117,9 +117,60 @@ void test_crlf()
     }
 }
 
+void test_get_string()
+{
+    std::cout << std::endl << "Tests to validate string parsing" << std::endl;
+
+    {
+        RespParser t1("3\r\ndel\r\nM");
+        auto [err, ret] = t1.get_bulk_string_internal();
+        TEST(ERROR_SUCCESS == err, "Parsing a valid string should succeed");
+        TEST(ret == std::string("del"), "The actual string should be retrieved");
+        TEST('M' == *t1.m_state.current, "current should be updated properly");
+    }
+    {
+        RespParser t1("2\r\ndel\r\nM");
+        auto [err, ret] = t1.get_bulk_string_internal();
+        TEST(ERROR_SUCCESS != err, "Parsing a invalid string should fail");
+    }
+    {
+        RespParser t1("4\r\ndel\r\nM");
+        auto [err, ret] = t1.get_bulk_string_internal();
+        TEST(ERROR_SUCCESS != err, "Parsing a invalid string should fail");
+    }
+    {
+        RespParser t1("0\r\ndel\r\nM");
+        auto [err, ret] = t1.get_bulk_string_internal();
+        TEST(ERROR_SUCCESS != err, "Parsing a invalid string should fail");
+    }
+    {
+        RespParser t1("0\r\n\r\nM");
+        auto [err, ret] = t1.get_bulk_string_internal();
+        TEST(ERROR_SUCCESS == err, "Parsing a valid string should succeed");
+        TEST(ret == std::string(""), "The actual empty string should be retrieved");
+        TEST('M' == *t1.m_state.current, "current should be updated properly");
+    }
+    {
+        RespParser t1("-1\r\nM");
+        auto [err, ret] = t1.get_bulk_string_internal();
+        TEST(ERROR_SUCCESS == err, "Parsing a valid string should succeed");
+        TEST(ret == std::string(""), "The actual empty string should be retrieved");
+        TEST('M' == *t1.m_state.current, "current should be updated properly");
+    }
+    {
+        RespParser t1("3\r\ndel\r\nM");
+        auto [err, ret] = t1.get_bulk_string_object();
+        TEST(ERROR_SUCCESS == err, "OBJ: Parsing a valid string should succeed");
+        TEST(ret, "OBJ: on success, the object should be returned");
+        TEST(ret->to_string() == std::string("del"), "OBJ: The actual string should be retrieved");
+        TEST('M' == *t1.m_state.current, "OBJ: current should be updated properly");
+    }
+}
+
 int main(int argc, char** argv)
 {
     basic_tests();
     length_test();
     test_crlf();
+    test_get_string();
 }

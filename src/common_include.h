@@ -13,5 +13,6 @@
 #include <deque>
 #include <cerrno>
 #include <atomic>
+#include <new>
 
 #endif /* #ifndef COMMON_INCLUDE_ */

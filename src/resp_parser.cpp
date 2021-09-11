@@ -76,3 +76,78 @@ RespParser::skip_crlf()
 
     return ERROR_SUCCESS;
 }
+
+std::tuple<resp_parse_error_t, std::string>
+RespParser::get_bulk_string_internal()
+{
+    std::string retval;
+
+    auto [err2, length] = get_length();
+    if (ERROR_SUCCESS != err2)
+        return std::make_tuple(err2, retval);
+    
+    auto err = skip_crlf();
+    if (ERROR_SUCCESS != err)
+    {
+        return std::make_tuple(err, retval);
+    }
+
+    // "$-1\r\n" is interpreted as NULL string, we are just going
+    // to treat it as an empty string for now
+    if (length < 0)
+        return std::make_tuple(ERROR_SUCCESS, retval);
+
+    // "$0\r\n\r\n" is treated as an empty string
+    if (!length)
+        return std::make_tuple(skip_crlf(), retval);
+
+    char* current = m_state.current;
+    char* save_current = current;
+
+    for (int i = 0; i < length; i++, current++)
+    {
+        if (current >= m_state.end)
+            return std::make_tuple(ERROR_CURRENT_BEYOND_END, retval);
+        if ('\r' == *current || '\n' == *current)
+            return std::make_tuple(ERROR_STRING_CONTAINS_CRLF, retval);
+    }
+
+    m_state.current = current;
+    err = skip_crlf();
+    if (ERROR_SUCCESS != err)
+    {
+        m_state.current = save_current;
+        return make_tuple(err, retval);
+    }
+
+    // Overwrite the string temporarily here to
+    // optimize duplication
+    auto savechar = *current;
+    *current = 0;
+    retval = save_current;
+    *current = savechar;
+
+    return std::make_tuple(ERROR_SUCCESS, retval);
+}
+
+std::tuple<resp_parse_error_t, std::shared_ptr<AbstractRespObject> >
+RespParser::get_bulk_string_object()
+{
+    resp_parse_error_t error = ERROR_SUCCESS;
+    auto [err, thestring] = get_bulk_string_internal();
+    if (ERROR_SUCCESS != err)
+    {
+        return std::make_tuple(
+            err,
+            std::shared_ptr<AbstractRespObject>(nullptr)
+        );
+    }
+
+    AbstractRespObject* p = new (std::nothrow) RespBulkString(thestring);
+    if (!p)
+        error = ERROR_NO_MEMORY;
+    return std::make_tuple(
+        error,
+        std::shared_ptr<AbstractRespObject>(p)
+    );
+}
