@@ -1,2 +1,2 @@
-# ns1-interview-repl
+# ns1-interview-redis
 NS1 Interview
