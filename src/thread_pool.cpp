@@ -54,7 +54,7 @@ void ThreadPool::process_job_unsafe(bool& lock_held)
         if (m_is_debug)
         {
             std::cerr << __FILE__ << ":" << __LINE__;
-            std::cout << " Running job " << p_job->get_job_id() << ": ";
+            std::cerr << " Running job " << p_job->get_job_id() << ": ";
             std::cerr << p_job->get_job_description() << std::endl;
         }
 
@@ -74,12 +74,12 @@ void ThreadPool::loop()
     int         err             = 0;
 
     if (m_is_debug)
-        std::cout << "Thread " << pthread_self() << " waiting for work." << std::endl;
+        std::cerr << "Thread " << pthread_self() << " waiting for work." << std::endl;
 
     while(true)
     {
         if (m_is_debug_verbose)
-            std::cout << "looping " << pthread_self() << std::endl;
+            std::cerr << "looping " << pthread_self() << std::endl;
 
         if (m_is_destroying)
         {
@@ -118,7 +118,7 @@ void ThreadPool::loop()
             {
                 if (rc == 0 && m_is_debug)
                 {
-                    std::cout << "pthread_cond_wait returned, rc = " << rc << " thread = " \
+                    std::cerr << "pthread_cond_wait returned, rc = " << rc << " thread = " \
                         << pthread_self() << " q length " << m_job_queue.size() << std::endl;
                 }
                 if (m_job_queue.size())
@@ -229,7 +229,7 @@ ThreadPool* ThreadPoolFactory::create_thread_pool(
         if (0 != pool->add_thread())
         {
             delete pool;
-            std::cout << "Failed to add thread, errno = " << errno << std::endl;
+            std::cerr << "Failed to add thread, errno = " << errno << std::endl;
             return nullptr;
         }
     }
