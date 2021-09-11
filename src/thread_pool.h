@@ -7,6 +7,21 @@
 class JobInterface
 {
 public:
+    std::uint64_t       m_job_id;
+    std::string         m_job_description;
+    
+    virtual std::string  get_job_description()
+    {
+        return m_job_description;
+    }
+    
+    JobInterface(): m_job_id(0), m_job_description("") {}
+
+    virtual void set_job_description(std::string description)
+    {
+        m_job_description = description;
+    }
+    
     virtual int run() = 0;
 };
 
@@ -31,11 +46,15 @@ public:
     /* Signal to threads to exit themselves */
     bool                                            m_is_destroying;
 
+    /* Job ID number, ever increasing */
+    std::atomic<std::uint64_t>                      m_job_sequence_number;
+
     ThreadPool() :
         m_num_threads(0),
         m_job_queue_mutex(PTHREAD_MUTEX_INITIALIZER),
         m_job_queue_cond(PTHREAD_COND_INITIALIZER),
-        m_is_destroying(false)
+        m_is_destroying(false),
+        m_job_sequence_number(0)
     {
         m_threads.reserve(8);
     }
