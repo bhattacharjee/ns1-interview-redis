@@ -217,6 +217,7 @@ void Orchestrator::epoll_thread_loop()
             1000);
         if (n_fd)
         {
+            // Take both locks to maintain lock heirarchy
             std::shared_lock lock0(m_all_sockets_mtx);
             std::unique_lock lock(m_epoll_sockets_mtx);
             for (int i = 0; i < n_fd; i++)
@@ -251,14 +252,17 @@ void Orchestrator::epoll_thread_loop()
 
 void Orchestrator::create_processing_job(int fd)
 {
-    std::shared_ptr<State>      p;
+    std::shared_ptr<State>      p(nullptr);
 
     {
         std::shared_mutex(m_all_sockets_mtx);
         assert(m_all_sockets.find(fd) != m_all_sockets.end());
         p = m_all_sockets[fd];
+        assert(!!p);
         p->m_mutex.lock();
     }
+
+    p->m_state = STATE_WAITING_FOR_READ_JOB;
 }
 
 bool Orchestrator::create_epoll_fd()
