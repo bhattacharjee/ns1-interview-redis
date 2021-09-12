@@ -1,4 +1,0 @@
-<map id="Orchestrator::create_processing_job" name="Orchestrator::create_processing_job">
-<area shape="rect" id="node1" title="creates a processing job for a ready to read fd" alt="" coords="196,5,348,47"/>
-<area shape="rect" id="node2" href="$classOrchestrator.html#a640e83ff96462b56020ad9695c5451e7" title="Loop and call epoll, and send ready sockets to workers." alt="" coords="5,5,148,47"/>
-</map>

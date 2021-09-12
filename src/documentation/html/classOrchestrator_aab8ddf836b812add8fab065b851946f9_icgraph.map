@@ -1,4 +1,0 @@
-<map id="Orchestrator::epoll_empty" name="Orchestrator::epoll_empty">
-<area shape="rect" id="node1" title="remove all monitoring file descriptors from epoll" alt="" coords="196,5,339,47"/>
-<area shape="rect" id="node2" href="$classOrchestrator.html#a640e83ff96462b56020ad9695c5451e7" title="Loop and call epoll, and send ready sockets to workers." alt="" coords="5,5,148,47"/>
-</map>

@@ -1,4 +1,0 @@
-<map id="Orchestrator::accepting_thread_loop" name="Orchestrator::accepting_thread_loop">
-<area shape="rect" id="node1" title="loop and accept connections on the listening socket Once a connection is received,..." alt="" coords="5,5,180,47"/>
-<area shape="rect" id="node2" href="$classOrchestrator.html#a2316aec8c24d4bfa46f8ac3c93707b4e" title="Wake up the epoll thread by sending it a signal." alt="" coords="228,5,389,47"/>
-</map>

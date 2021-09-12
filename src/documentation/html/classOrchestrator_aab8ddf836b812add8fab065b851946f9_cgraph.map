@@ -1,4 +1,0 @@
-<map id="Orchestrator::epoll_empty" name="Orchestrator::epoll_empty">
-<area shape="rect" id="node1" title="remove all monitoring file descriptors from epoll" alt="" coords="5,5,148,47"/>
-<area shape="rect" id="node2" href="$classOrchestrator.html#af0f01e3500b84b99ee76dd72503b5bf1" title="remove all monitoring file descriptors from epoll This is the unsafe version of the function,..." alt="" coords="196,5,339,47"/>
-</map>

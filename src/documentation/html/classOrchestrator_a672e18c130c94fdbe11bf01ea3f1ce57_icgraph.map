@@ -1,5 +1,0 @@
-<map id="Orchestrator::epoll_rearm_unsafe" name="Orchestrator::epoll_rearm_unsafe">
-<area shape="rect" id="node1" title="rebuild the epoll monitor from the set of fd&#39;s" alt="" coords="387,5,529,47"/>
-<area shape="rect" id="node2" href="$classOrchestrator.html#a000d29b799ace8712b6b8b4af774e38e" title="rebuild the epoll monitor from the set of fd&#39;s" alt="" coords="196,5,339,47"/>
-<area shape="rect" id="node3" href="$classOrchestrator.html#a640e83ff96462b56020ad9695c5451e7" title="Loop and call epoll, and send ready sockets to workers." alt="" coords="5,5,148,47"/>
-</map>

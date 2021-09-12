@@ -1,8 +1,0 @@
-<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classAbstractRespObject.html" title=" " alt="" coords="5,107,156,133"/>
-<area shape="rect" id="node2" href="$classRespArray.html" title=" " alt="" coords="220,5,309,32"/>
-<area shape="rect" id="node3" href="$classRespBulkString.html" title=" " alt="" coords="204,56,325,83"/>
-<area shape="rect" id="node4" href="$classRespError.html" title=" " alt="" coords="222,107,307,133"/>
-<area shape="rect" id="node5" href="$classRespInteger.html" title=" " alt="" coords="215,157,315,184"/>
-<area shape="rect" id="node6" href="$classRespString.html" title=" " alt="" coords="219,208,311,235"/>
-</map>
