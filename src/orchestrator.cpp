@@ -545,11 +545,25 @@ bool Orchestrator::add_to_write_queue(std::shared_ptr<State> pstate)
     
     return true;
 }
-/*
+
+/**
  * TODO: Refactor this function, into three different classes
  * for each command: set, get and del
  * And those classes should be responsible for both validating
  * and actual action
+ */
+/**
+ * @brief given an abstract object, find whether it is a valid
+ * command or not.
+ * 
+ * When a command is received from the client, it is parsed.
+ * After parsing, this function will decide whether it is a valid
+ * command or not
+ * 
+ * @param p the parsed input in object form
+ * @return std::tuple<bool, command_type_t> a tuple of two items:
+ * 1. whether it is valid or not
+ * 2. the type of command if it is valid
  */
 std::tuple<bool, command_type_t>
 Orchestrator::is_valid_command(std::shared_ptr<AbstractRespObject> p)
@@ -594,6 +608,24 @@ Orchestrator::is_valid_command(std::shared_ptr<AbstractRespObject> p)
         return std::make_tuple(false, COMMAND_INVALID);
 }
 
+/**
+ * @brief Get the partition id of the hash table, based on the
+ * key.
+ * 
+ * For performance reasons, instead of using a single hash,
+ * we use multiple hashes, and the decision to choose the
+ * correct hash is taken based on the first character of the key.
+ * 
+ * This is done because on high load, a single hash would be
+ * affected by lock contention. Using several hashes will
+ * reduce the lock contention.
+ * 
+ * Additionally, reader-writer locks are used to increase
+ * concurrency even more.
+ * 
+ * @param varname name of the variable
+ * @return int partition id of the correct hash to use
+ */
 int Orchestrator::get_partition(const std::string& varname)
 {
     if (0 == varname.length())
@@ -602,6 +634,17 @@ int Orchestrator::get_partition(const std::string& varname)
     return x % NUM_DATASTORES;
 }
 
+/**
+ * @brief given a parsed command, perform the requested operations
+ * 
+ * @param command command after parsing, as received from client
+ * @return std::tuple<bool, std::shared_ptr<AbstractRespObject> > 
+ * a tuple containing two items
+ * 1. has there been a fatal error, which mandates the
+ *    client connection must be closed
+ * 2. output of the operation as an object that can be serialized
+ *    and sent to the client as response.
+ */
 std::tuple<bool, std::shared_ptr<AbstractRespObject> >
 Orchestrator::do_operation(std::shared_ptr<AbstractRespObject> command)
 {
@@ -638,6 +681,17 @@ Orchestrator::do_operation(std::shared_ptr<AbstractRespObject> command)
     return std::make_tuple(false, p);
 }
 
+/**
+ * @brief in case of a SET command, perform the action
+ * 
+ * @param pobj command after parsing, as received from client
+ * @return std::tuple<bool, std::shared_ptr<AbstractRespObject> > 
+ * a tuple containing two items
+ * 1. has there been a fatal error, which mandates the
+ *    client connection must be closed
+ * 2. output of the operation as an object that can be serialized
+ *    and sent to the client as response.
+ */
 std::tuple<bool, std::shared_ptr<AbstractRespObject> >
 Orchestrator::do_set(std::shared_ptr<AbstractRespObject> pobj)
 {
@@ -674,6 +728,17 @@ Orchestrator::do_set(std::shared_ptr<AbstractRespObject> pobj)
         std::shared_ptr<AbstractRespObject>((AbstractRespObject*)err_obj));
 }
 
+/**
+ * @brief In case of the GET command, perform the action
+ * 
+ * @param pobj command after parsing, as received from client
+ * @return std::tuple<bool, std::shared_ptr<AbstractRespObject> > 
+ * a tuple containing two items
+ * 1. has there been a fatal error, which mandates the
+ *    client connection must be closed
+ * 2. output of the operation as an object that can be serialized
+ *    and sent to the client as response.
+ */
 std::tuple<bool, std::shared_ptr<AbstractRespObject> >
 Orchestrator::do_get(std::shared_ptr<AbstractRespObject> pobj)
 {
@@ -724,6 +789,14 @@ Orchestrator::do_get(std::shared_ptr<AbstractRespObject> pobj)
     return std::make_tuple(true, ret);
 }
 
+/**
+ * @brief delete one variable from the appropriate hash
+ * 
+ * @param pobj command after parsing, as received from the client
+ * @return true on successful deletion
+ * @return false on failure to delete for any reason, including
+ * if the item was not present in the first place.
+ */
 bool Orchestrator::do_del_internal(std::shared_ptr<AbstractRespObject> pobj)
 {
     auto key = pobj->to_string();
@@ -731,6 +804,17 @@ bool Orchestrator::do_del_internal(std::shared_ptr<AbstractRespObject> pobj)
     return m_datastore[partition].del(key.c_str());
 }
 
+/**
+ * @brief perform the DEL command
+ * 
+ * @param pobj command after parsing, as received from client
+ * @return std::tuple<bool, std::shared_ptr<AbstractRespObject> > 
+ * a tuple containing two items
+ * 1. has there been a fatal error, which mandates the
+ *    client connection must be closed
+ * 2. output of the operation as an object that can be serialized
+ *    and sent to the client as response.
+ */
 std::tuple<bool, std::shared_ptr<AbstractRespObject> >
 Orchestrator::do_del(std::shared_ptr<AbstractRespObject> pobj)
 {
@@ -810,7 +894,13 @@ int SocketReadJob::run()
     return 0;
 }
 
-
+/**
+ * @brief The job in the work-queue which parses the input
+ * that is received from the user, and then performs the
+ * appropriate action
+ * 
+ * @return int 0 on success
+ */
 int ParseAndRunJob::run()
 {
     m_pstate->m_state = STATE_PARSING;
@@ -872,6 +962,12 @@ int ParseAndRunJob::run()
 
 }
 
+/**
+ * @brief the job for the work-queue which actually sends
+ * the response back to the client
+ * 
+ * @return int 0 on success
+ */
 int SocketWriteJob::run()
 {
     m_pstate->m_state = STATE_PARSING;
