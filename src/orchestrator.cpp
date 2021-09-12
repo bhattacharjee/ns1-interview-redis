@@ -381,6 +381,30 @@ bool Orchestrator::add_to_parse_queue(std::shared_ptr<State> pstate)
     return true;
 }
 
+bool Orchestrator::add_to_write_queue(std::shared_ptr<State> pstate)
+{
+    SocketWriteJob* job = new (std::nothrow) SocketWriteJob(this, pstate);
+    if (!job)
+    {
+        std::cerr << "Out of memory" << std::endl;
+        return false;
+    }
+
+    if (0 != m_write_threadpool->add_job(std::shared_ptr<JobInterface>(job)))
+        return false;
+    
+    return true;
+}
+
+std::tuple<bool, std::shared_ptr<AbstractRespObject> >
+Orchestrator::do_operation(std::shared_ptr<AbstractRespObject> command)
+{
+    // TODO: Fill this up
+
+    RespError* error = new RespError(std::string("generic error"));
+    std::shared_ptr<AbstractRespObject> p((AbstractRespObject*)error);
+    return std::make_tuple(false, p);
+}
 #define BUFSIZE 513
 int SocketReadJob::run()
 {
@@ -428,7 +452,7 @@ int ParseAndRunJob::run()
     m_pstate->m_state = STATE_PARSING;
     auto fd = m_pstate->m_socket;
     std::cerr << fd << ": Picked up for parsing" << std::endl;
-    /*
+
 
     RespParser parser(m_pstate->m_read_data);
     auto [err, parsed_obj] = parser.get_generic_object();
@@ -437,7 +461,7 @@ int ParseAndRunJob::run()
         std::cerr << fd << ": Could not parse" << std::endl;
         m_pstate->m_is_error = true;
         RespError* e = new RespError(std::string("Unable to parse"));
-        m_state->m_response = std::shared_ptr<AbstractRespObject>(e);
+        m_pstate->m_response = std::shared_ptr<AbstractRespObject>((AbstractRespObject*)e);
 
         if (false == m_porchestrator->add_to_write_queue(m_pstate))
         {
@@ -469,7 +493,7 @@ int ParseAndRunJob::run()
     }
 
     std::cerr << fd << ": Added to write queue" << std::endl;
-    */
+
 
     return 0;
 
@@ -479,5 +503,40 @@ int SocketWriteJob::run()
 {
     m_pstate->m_state = STATE_PARSING;
     auto fd = m_pstate->m_socket;
+
+    std::cerr << fd << ": Picked up write job";
+
+    char default_buffer[] = "-ERROR\r\n";
+    char* buffer;
+    std::string response_string;
+
+    if (m_pstate->m_special_error[0])
+        buffer = m_pstate->m_special_error;
+    else if (m_pstate->m_response)
+    {
+        response_string = m_pstate->m_response->serialize();
+        buffer = const_cast<char*>(response_string.c_str());
+    }
+    else
+    {
+        buffer = default_buffer;
+    }
+
+    int buflen = strlen(buffer);
+
+    auto bytes_written = write(fd, buffer, buflen);
+
+    if (-bytes_written < 0)
+    {
+        perror("write");
+        std::cout << fd << ": Write failed with rc = " << bytes_written \
+            << " error = " << errno << std::endl;
+        close_and_cleanup(fd, m_pstate, m_porchestrator);
+        return -1;
+    }
+
+    // TODO: clear the state and add to the polling queue
+    close_and_cleanup(fd, m_pstate, m_porchestrator);
+
     return 0;
 }
