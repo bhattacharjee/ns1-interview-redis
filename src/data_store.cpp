@@ -1,6 +1,6 @@
 #include "data_store.h"
 
-bool DataStore::set(std::string key, std::string value)
+bool DataStore::set(const std::string& key, const std::string& value)
 {
     std::unique_lock lock(m_mutex);
     try
@@ -15,7 +15,7 @@ bool DataStore::set(std::string key, std::string value)
     return true;
 }
 
-bool DataStore::del(std::string key)
+bool DataStore::del(const std::string& key)
 {
     std::unique_lock lock(m_mutex);
     try

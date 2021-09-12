@@ -10,9 +10,9 @@ private:
     mutable std::shared_mutex                       m_mutex;
 
 public:
-    bool set(std::string key, std::string value);
+    bool set(const std::string& key, const std::string& value);
 
-    bool del(std::string key);
+    bool del(const std::string& key);
 
     std::tuple<bool, std::string> get(const std::string& key);
 
