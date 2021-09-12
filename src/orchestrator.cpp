@@ -935,10 +935,10 @@ int ParseAndRunJob::run()
         return -1;
     }
 
-    m_pstate->m_resp_object = parsed_obj;
+    m_pstate->m_object = parsed_obj;
 
     auto [is_fatal, response] = m_porchestrator->do_operation(
-                                    m_pstate->m_resp_object);
+                                    m_pstate->m_object);
     m_pstate->m_response = response;
 
     if (is_fatal)
