@@ -395,16 +395,150 @@ bool Orchestrator::add_to_write_queue(std::shared_ptr<State> pstate)
     
     return true;
 }
+/*
+ * TODO: Refactor this function, into three different classes
+ * for each command: set, get and del
+ * And those classes should be responsible for both validating
+ * and actual action
+ */
+std::tuple<bool, command_type_t>
+Orchestrator::is_valid_command(std::shared_ptr<AbstractRespObject> p)
+{
+    if (! p->m_is_aggregate)
+        return std::make_tuple(false, COMMAND_INVALID);
+    
+    RespArray* p_array_obj = static_cast<RespArray*>(p.get());
+    auto array = p_array_obj->get_array();
+
+    if (array.size() <= 1)
+        return std::make_tuple(false, COMMAND_INVALID);
+
+    auto command_string = array[0]->to_string();
+    command_type_t type = COMMAND_INVALID;
+
+    if (command_string == std::string("get") || 
+        command_string == std::string("del"))
+    {
+        if (command_string == std::string("get"))
+            type = COMMAND_GET;
+        else
+            type = COMMAND_DEL;
+
+        if (array.size() >= 2 && 
+            (RESP_BULK_STRING == array[1]->m_datatype ||
+                RESP_STRING == array[1]->m_datatype))
+            return std::make_tuple(true, type);
+        else
+            return std::make_tuple(false, COMMAND_INVALID);
+    }
+    else if (command_string == std::string("set"))
+    {
+        if (array.size() >= 3 &&
+            (RESP_BULK_STRING == array[1]->m_datatype ||
+                RESP_STRING == array[1]->m_datatype))
+            return std::make_tuple(true, COMMAND_SET);
+        else
+            return std::make_tuple(false, COMMAND_INVALID);
+    }
+    else
+        return std::make_tuple(false, COMMAND_INVALID);
+}
+
+int Orchestrator::get_partition(const std::string& varname)
+{
+    if (0 == varname.length())
+        return 0;
+    char x = varname[0];
+    return x % NUM_DATASTORES;
+}
 
 std::tuple<bool, std::shared_ptr<AbstractRespObject> >
 Orchestrator::do_operation(std::shared_ptr<AbstractRespObject> command)
 {
     // TODO: Fill this up
+    auto [is_valid, cmd_type] = is_valid_command(command);
+    if (!is_valid)
+    {
+        RespError* error = new (std::nothrow) RespError("Invalid command");
+        if (!error)
+        {
+            std::cerr << "Out of memory, exiting" << std::endl;
+            exit(1);
+        }
+        return std::make_tuple(
+            false,
+            std::shared_ptr<AbstractRespObject>((AbstractRespObject*)error));
+    }
 
-    RespError* error = new RespError(std::string("generic error"));
+    if (COMMAND_GET == cmd_type)
+        return do_get(command);
+    /*
+    else if (COMMAND_DEL == cmd_type)
+        return do_get(command);
+    else if (COMMAND_SET == cmd_type)
+        return do_set(command);
+    */
+
+    RespError* error = new (std::nothrow) RespError(std::string("generic error"));
+    if (!error)
+    {
+        std::cerr << "Out of memory. exiting" << std::endl;
+        exit(1);
+    }
     std::shared_ptr<AbstractRespObject> p((AbstractRespObject*)error);
     return std::make_tuple(false, p);
 }
+
+std::tuple<bool, std::shared_ptr<AbstractRespObject> >
+Orchestrator::do_get(std::shared_ptr<AbstractRespObject> pobj)
+{
+    RespArray* p_array_obj = static_cast<RespArray*>(pobj.get());
+    auto array = p_array_obj->get_array();
+    auto varname = array[1]->to_string();
+    auto partition = get_partition(varname);
+    
+    auto [found, value] = m_datastore[partition].get(varname.c_str());
+
+    if (!found)
+    {
+        auto *p = new (std::nothrow) RespBulkString(std::string(""));
+        if (!p)
+        {
+            std::cerr << "Outo of memory" << std::endl;
+            exit(1);
+        }
+
+        p->set_null(true);
+        return std::make_tuple(
+            true, 
+            std::shared_ptr<AbstractRespObject>(\
+                static_cast<AbstractRespObject*>(p)));
+    }
+
+    RespParser parser(value);
+    auto [err, ret] = parser.get_generic_object();
+    if (ERROR_SUCCESS != err)
+    {
+        std::cerr << "IMPORTANT: could not parse value from hash '"\
+            << value << "'" << std::endl;
+
+        auto *p = new (std::nothrow) RespBulkString(std::string(""));
+        if (!p)
+        {
+            std::cerr << "Outo of memory" << std::endl;
+            exit(1);
+        }
+
+        p->set_null(true);
+        return std::make_tuple(
+            true, 
+            std::shared_ptr<AbstractRespObject>(\
+                static_cast<AbstractRespObject*>(p)));
+    }
+
+    return std::make_tuple(true, ret);
+}
+
 #define BUFSIZE 513
 int SocketReadJob::run()
 {

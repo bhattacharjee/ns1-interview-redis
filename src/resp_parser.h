@@ -200,6 +200,11 @@ public:
 
         return ss.str();
     }
+
+    std::vector<std::shared_ptr<AbstractRespObject> > get_array()
+    {
+        return m_value;
+    }
 };
 
 class RespError: AbstractRespObject

@@ -14,7 +14,7 @@ public:
 
     bool del(std::string key);
 
-    std::tuple<bool, std::string> get(std::string key);
+    std::tuple<bool, std::string> get(const std::string& key);
 
     bool set(const char* key, const char* value)
     {

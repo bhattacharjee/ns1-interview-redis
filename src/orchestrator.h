@@ -25,6 +25,14 @@ class Orchestrator;
 class SocketReadJob;
 class ParseAndRunJob;
 
+typedef enum
+{
+    COMMAND_INVALID,
+    COMMAND_GET,
+    COMMAND_DEL,
+    COMMAND_SET
+} command_type_t;
+
 class SocketReadJob: public JobInterface
 {
 public:
@@ -167,8 +175,15 @@ public:
     bool add_to_parse_queue(std::shared_ptr<State> pstate);
     bool add_to_write_queue(std::shared_ptr<State> pstate);
 
+
     std::tuple<bool, std::shared_ptr<AbstractRespObject> >
         do_operation(std::shared_ptr<AbstractRespObject> command);
+    
+    std::tuple<bool, std::shared_ptr<AbstractRespObject> >
+        do_get(std::shared_ptr<AbstractRespObject> p);
+
+    std::tuple<bool, std::shared_ptr<AbstractRespObject> >
+        do_set(std::shared_ptr<AbstractRespObject> p);
 
 
     static void* accepting_thread_pthread_fn(void* arg)
@@ -184,6 +199,11 @@ public:
         ptr->epoll_thread_loop();
         return nullptr;
     }
+
+
+    std::tuple<bool, command_type_t>
+        is_valid_command(std::shared_ptr<AbstractRespObject> p);
+    int get_partition(const std::string& s);
 };
 
 #endif /* #ifndef ORCHESTRATOR_H_ */

@@ -32,7 +32,7 @@ bool DataStore::del(std::string key)
     }
 }
 
-std::tuple<bool, std::string> DataStore::get(std::string key)
+std::tuple<bool, std::string> DataStore::get(const std::string& key)
 {
     std::shared_lock lock(m_mutex);
     try

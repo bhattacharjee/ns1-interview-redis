@@ -19,4 +19,4 @@ server: orchestrator.cpp server.cpp data_store.cpp resp_parser.cpp thread_pool.c
 test: ds_tests resp_parser_test thread_pool_test 
 
 clean:
-	rm -f thread_pool_test ds_tests resp_parser_test *.o
+	rm -f server thread_pool_test ds_tests resp_parser_test *.o
