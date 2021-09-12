@@ -68,7 +68,8 @@ bool Orchestrator::spawn_accepting_thread()
         Orchestrator::accepting_thread_pthread_fn,
         this)))
     {
-        std::cerr << "pthread_create failed with rc = " << retval << " errno = " << errno << std::endl;
+        std::cerr << "pthread_create failed with rc = " << retval \
+                << " errno = " << errno << std::endl;
         return false;
     }
 
@@ -90,7 +91,8 @@ bool Orchestrator::spawn_epoll_thread()
         Orchestrator::epoll_thread_pthread_fn,
         this)))
     {
-        std::cerr << "pthread_create failed with rc = " << retval << " errno = " << errno << std::endl;
+        std::cerr << "pthread_create failed with rc = " << retval \
+                << " errno = " << errno << std::endl;
         return false;
     }
 
@@ -120,7 +122,8 @@ void Orchestrator::accepting_thread_loop()
         int flags = fcntl(new_socket, F_GETFL, 0);
         if (0 != fcntl(new_socket, F_SETFL, flags | O_NONBLOCK))
         {
-            std::cerr << new_socket << ": could not set nonblocking" << std::endl;
+            std::cerr << new_socket << \
+                    ": could not set nonblocking" << std::endl;
         }
 
         std::unique_lock    lock(m_all_sockets_mtx);
@@ -194,9 +197,12 @@ void Orchestrator::epoll_empty_unsafe()
         event.events = EPOLLIN | EPOLLOUT | EPOLLHUP | EPOLLERR | EPOLLET;
         if (epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, &event))
         {
-            perror("epoll_ctl");
-            std::cerr << "epoll_ctl failed fd = " << fd \
-                <<" errno = " << errno << std::endl;
+            if (ENOENT != errno)
+            {
+                perror("epoll_ctl");
+                std::cerr << "epoll_ctl failed fd = " << fd \
+                    <<" errno = " << errno << std::endl;
+            }
         }
     }
 }
@@ -214,8 +220,12 @@ void Orchestrator::epoll_rearm_unsafe()
         event.data.fd = fd;
         if (epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, fd, &event))
         {
-            perror("epoll_ctl");
-            std::cerr << "epoll_ctl failed, errno = " << errno << std::endl;
+            if (ENOENT != errno)
+            {
+                perror("epoll_ctl");
+                std::cerr << "epoll_ctl failed, errno = " \
+                    << errno << std::endl;
+            }
         }
     }
 }
@@ -327,7 +337,8 @@ void Orchestrator::create_processing_job(int fd)
         return;
     }
 
-    if (0 != m_processing_threadpool->add_job(std::shared_ptr<JobInterface>(job)))
+    if (0 != m_processing_threadpool->add_job(\
+                            std::shared_ptr<JobInterface>(job)))
     {
         std::cerr << "Error adding job to processing threadpool" << std::endl;
     }
@@ -393,7 +404,8 @@ bool Orchestrator::add_to_parse_queue(std::shared_ptr<State> pstate)
         return false;
     }
 
-    if (0 != m_parse_and_run_threadpool->add_job(std::shared_ptr<JobInterface>(job)))
+    if (0 != m_parse_and_run_threadpool->add_job(\
+                            std::shared_ptr<JobInterface>(job)))
         return false;
     
     return true;
@@ -495,7 +507,8 @@ Orchestrator::do_operation(std::shared_ptr<AbstractRespObject> command)
     else if (COMMAND_DEL == cmd_type)
         return do_del(command);
 
-    RespError* error = new (std::nothrow) RespError(std::string("generic error"));
+    RespError* error = \
+               new (std::nothrow) RespError(std::string("generic error"));
     if (!error)
     {
         std::cerr << "Out of memory. exiting" << std::endl;
@@ -514,8 +527,6 @@ Orchestrator::do_set(std::shared_ptr<AbstractRespObject> pobj)
     auto partition = get_partition(varname);
     auto value = array[2]->serialize();
 
-    //std::cerr << "Setting " << varname << " = " << value << std::endl;
-    //std::cerr << "Storiing " << varname << " = " << value << " partition = " << partition << std::endl;
     auto success = m_datastore[partition].set(varname.c_str(), value.c_str());
     if (success)
     {
@@ -551,8 +562,6 @@ Orchestrator::do_get(std::shared_ptr<AbstractRespObject> pobj)
     auto varname = array[1]->to_string();
     auto partition = get_partition(varname);
     
-    //std::cerr << "Fetching " << varname << " from partition " << partition << std::endl;
-    //m_datastore[partition].set(varname.c_str(), "$6\r\nfoobar\r\n");
     auto [found, value] = m_datastore[partition].get(varname.c_str());
 
     if (!found)
@@ -685,12 +694,16 @@ int ParseAndRunJob::run()
     {
         std::cerr << fd << ": Could not parse command '" \
             << m_pstate->m_read_data << "'" << std::endl;
+
         m_pstate->m_is_error = true;
+
         RespError* e = new RespError(
             std::string("Unable to parse '") 
                 + std::string(m_pstate->m_read_data)
                 + std::string("'. Try again."));
-        m_pstate->m_response = std::shared_ptr<AbstractRespObject>((AbstractRespObject*)e);
+
+        m_pstate->m_response = \
+               std::shared_ptr<AbstractRespObject>((AbstractRespObject*)e);
 
         if (false == m_porchestrator->add_to_write_queue(m_pstate))
         {
@@ -707,17 +720,13 @@ int ParseAndRunJob::run()
     auto [is_fatal, response] = m_porchestrator->do_operation(
                                     m_pstate->m_resp_object);
     m_pstate->m_response = response;
-    std::cout << m_pstate->m_response << std::endl;
+
     if (is_fatal)
     {
         m_pstate->m_is_error = true;
         if (!response)
             m_pstate->set_default_special_error();
     }
-
-    std::cout << "------------------------" << std::endl;
-    std::cout << m_pstate->m_response->to_string() << " " << std::endl;
-    std::cout << m_pstate->m_response->serialize() << std::endl;
 
     if (false == m_porchestrator->add_to_write_queue(m_pstate))
     {
