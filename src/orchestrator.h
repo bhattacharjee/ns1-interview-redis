@@ -25,6 +25,12 @@ class Orchestrator;
 class SocketReadJob;
 class ParseAndRunJob;
 
+/**
+ * @brief enum defines the different types of commands
+ * 
+ * Commands can be get, set or del
+ * 
+ */
 typedef enum
 {
     COMMAND_INVALID,
@@ -33,6 +39,15 @@ typedef enum
     COMMAND_SET
 } command_type_t;
 
+/**
+ * @brief Job to read from a socket
+ * 
+ * The responsibility of this class is to read
+ * from a ready socket, and then pass this on to the
+ * thread-pool that schedules jobs that parse and do
+ * the actual work.
+ * 
+ */
 class SocketReadJob: public JobInterface
 {
 public:
@@ -172,7 +187,7 @@ public:
     void epoll_empty();
     void epoll_empty_unsafe();
     void create_processing_job(int fd);
-    bool add_to_parse_queue(std::shared_ptr<State> pstate);
+    bool add_to_parse_and_run_queue(std::shared_ptr<State> pstate);
     bool add_to_write_queue(std::shared_ptr<State> pstate);
 
 

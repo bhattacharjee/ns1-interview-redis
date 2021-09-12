@@ -1,0 +1,7 @@
+<map id="JobInterface" name="JobInterface">
+<area shape="rect" id="node1" title=" " alt="" coords="274,5,449,171"/>
+<area shape="rect" id="node2" href="$classBasicTest.html" title=" " alt="" coords="5,219,173,369"/>
+<area shape="rect" id="node3" href="$classParseAndRunJob.html" title=" " alt="" coords="198,241,351,347"/>
+<area shape="rect" id="node4" href="$classSocketReadJob.html" title="Job to read from a socket." alt="" coords="376,241,520,347"/>
+<area shape="rect" id="node5" href="$classSocketWriteJob.html" title=" " alt="" coords="545,241,690,347"/>
+</map>

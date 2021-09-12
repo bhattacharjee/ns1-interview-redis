@@ -1,0 +1,87 @@
+\hypertarget{classSocketReadJob}{}\doxysection{Socket\+Read\+Job Class Reference}
+\label{classSocketReadJob}\index{SocketReadJob@{SocketReadJob}}
+
+
+Job to read from a socket.  
+
+
+
+
+{\ttfamily \#include $<$orchestrator.\+h$>$}
+
+
+
+Inheritance diagram for Socket\+Read\+Job\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=211pt]{classSocketReadJob__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Socket\+Read\+Job\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=550pt]{classSocketReadJob__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSocketReadJob_ab75b9ad5d3b4f46ca13225b756d07937}\label{classSocketReadJob_ab75b9ad5d3b4f46ca13225b756d07937}} 
+{\bfseries Socket\+Read\+Job} (\mbox{\hyperlink{classOrchestrator}{Orchestrator}} $\ast$porch, std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{structState}{State}} $>$ pstate)
+\item 
+int \mbox{\hyperlink{classSocketReadJob_abe95d1edb2f7959a77f8447fe64da68a}{run}} ()
+\begin{DoxyCompactList}\small\item\em Reads from a socket and stores the values the state. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classSocketReadJob_af5ee89e874149dbc476f1df4edad3169}\label{classSocketReadJob_af5ee89e874149dbc476f1df4edad3169}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{structState}{State}} $>$ {\bfseries m\+\_\+pstate}
+\item 
+\mbox{\Hypertarget{classSocketReadJob_a22e4ce8008623a955f392fd5f16ecbbf}\label{classSocketReadJob_a22e4ce8008623a955f392fd5f16ecbbf}} 
+\mbox{\hyperlink{classOrchestrator}{Orchestrator}} $\ast$ {\bfseries m\+\_\+porchestrator}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Job to read from a socket. 
+
+The responsibility of this class is to read from a ready socket, and then pass this on to the thread-\/pool that schedules jobs that parse and do the actual work. 
+
+Definition at line 51 of file orchestrator.\+h.
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classSocketReadJob_abe95d1edb2f7959a77f8447fe64da68a}\label{classSocketReadJob_abe95d1edb2f7959a77f8447fe64da68a}} 
+\index{SocketReadJob@{SocketReadJob}!run@{run}}
+\index{run@{run}!SocketReadJob@{SocketReadJob}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}}
+{\footnotesize\ttfamily int Socket\+Read\+Job\+::run (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [virtual]}}
+
+
+
+Reads from a socket and stores the values the state. 
+
+It runs as a part of the read worker pool. When done, it then invokes the parser worker pool.
+
+\begin{DoxyReturn}{Returns}
+int on success it returns 0, otherwise a number to indicate the error 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classJobInterface}{Job\+Interface}}.
+
+
+
+Definition at line 747 of file orchestrator.\+cpp.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+orchestrator.\+h\item 
+orchestrator.\+cpp\end{DoxyCompactItemize}

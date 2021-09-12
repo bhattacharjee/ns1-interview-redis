@@ -1,0 +1,7 @@
+<map id="SocketReadJob" name="SocketReadJob">
+<area shape="rect" id="node1" title="Job to read from a socket." alt="" coords="43,1092,185,1184"/>
+<area shape="rect" id="node2" href="$classJobInterface.html" title=" " alt="" coords="5,629,180,795"/>
+<area shape="rect" id="node3" href="$classOrchestrator.html" title=" " alt="" coords="204,395,440,1029"/>
+<area shape="rect" id="node4" href="$classThreadPool.html" title=" " alt="" coords="103,5,306,288"/>
+<area shape="rect" id="node5" href="$classDataStore.html" title=" " alt="" coords="396,71,483,222"/>
+</map>

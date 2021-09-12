@@ -1,0 +1,5 @@
+<map id="Orchestrator::wakeup_epoll_thread" name="Orchestrator::wakeup_epoll_thread">
+<area shape="rect" id="node1" title="Wake up the epoll thread by sending it a signal." alt="" coords="228,39,389,80"/>
+<area shape="rect" id="node2" href="$classOrchestrator.html#a01d61a328b5fe8330bc4f1244db3d8ae" title="loop and accept connections on the listening socket Once a connection is received,..." alt="" coords="5,5,180,47"/>
+<area shape="rect" id="node3" href="$classOrchestrator.html#a666d0eef3fe352a6c390372c50e52978" title="Add a file descriptor to queue for epoll This queue is monitored by the thread which executes epoll...." alt="" coords="15,71,170,112"/>
+</map>

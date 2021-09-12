@@ -1,0 +1,75 @@
+\hypertarget{classThreadPool}{}\doxysection{Thread\+Pool Class Reference}
+\label{classThreadPool}\index{ThreadPool@{ThreadPool}}
+
+
+Collaboration diagram for Thread\+Pool\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=232pt]{classThreadPool__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classThreadPool_a1fc47b18aadfc925b03ff8c153c70e23}\label{classThreadPool_a1fc47b18aadfc925b03ff8c153c70e23}} 
+int {\bfseries add\+\_\+thread} ()
+\item 
+\mbox{\Hypertarget{classThreadPool_aa50c6962be79a349021491b738c6fda4}\label{classThreadPool_aa50c6962be79a349021491b738c6fda4}} 
+void {\bfseries loop} ()
+\item 
+\mbox{\Hypertarget{classThreadPool_a59301f6a5c630f0d40f60435117a2db2}\label{classThreadPool_a59301f6a5c630f0d40f60435117a2db2}} 
+void {\bfseries destroy} ()
+\item 
+\mbox{\Hypertarget{classThreadPool_a9127b729399e860c4f339cb6f744045a}\label{classThreadPool_a9127b729399e860c4f339cb6f744045a}} 
+int {\bfseries add\+\_\+job} (std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classJobInterface}{Job\+Interface}} $>$ p\+\_\+job)
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classThreadPool_a07e0bac8d07880367344e4453561d982}\label{classThreadPool_a07e0bac8d07880367344e4453561d982}} 
+static void $\ast$ {\bfseries thread\+\_\+start\+\_\+routine} (void $\ast$arg)
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classThreadPool_a8afe401e66a7d02e76b1ed26783dd65f}\label{classThreadPool_a8afe401e66a7d02e76b1ed26783dd65f}} 
+std\+::atomic$<$ int $>$ {\bfseries m\+\_\+num\+\_\+threads}
+\item 
+\mbox{\Hypertarget{classThreadPool_ae8ad40d0debb5e30f20a65743270670a}\label{classThreadPool_ae8ad40d0debb5e30f20a65743270670a}} 
+std\+::vector$<$ pthread\+\_\+t $>$ {\bfseries m\+\_\+threads}
+\item 
+\mbox{\Hypertarget{classThreadPool_af0b3c3fb6a90e79ab333d28b5f541b6e}\label{classThreadPool_af0b3c3fb6a90e79ab333d28b5f541b6e}} 
+std\+::deque$<$ std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classJobInterface}{Job\+Interface}} $>$ $>$ {\bfseries m\+\_\+job\+\_\+queue}
+\item 
+\mbox{\Hypertarget{classThreadPool_ac5b4a9afcbb14709600cbb78d9faed33}\label{classThreadPool_ac5b4a9afcbb14709600cbb78d9faed33}} 
+pthread\+\_\+mutex\+\_\+t {\bfseries m\+\_\+job\+\_\+queue\+\_\+mutex}
+\item 
+\mbox{\Hypertarget{classThreadPool_af13bb15d1303d7ab50a6c2a94e667297}\label{classThreadPool_af13bb15d1303d7ab50a6c2a94e667297}} 
+pthread\+\_\+cond\+\_\+t {\bfseries m\+\_\+job\+\_\+queue\+\_\+cond}
+\item 
+\mbox{\Hypertarget{classThreadPool_ab9ebde038ffee689e458c7de0f5f7c8c}\label{classThreadPool_ab9ebde038ffee689e458c7de0f5f7c8c}} 
+bool {\bfseries m\+\_\+is\+\_\+destroying}
+\item 
+\mbox{\Hypertarget{classThreadPool_abe4eb194add4ae659da10cbff365c648}\label{classThreadPool_abe4eb194add4ae659da10cbff365c648}} 
+std\+::atomic$<$ std\+::uint64\+\_\+t $>$ {\bfseries m\+\_\+job\+\_\+sequence\+\_\+number}
+\item 
+\mbox{\Hypertarget{classThreadPool_a53fabed48539f559c14564aff5ce4bba}\label{classThreadPool_a53fabed48539f559c14564aff5ce4bba}} 
+bool {\bfseries m\+\_\+is\+\_\+debug}
+\item 
+\mbox{\Hypertarget{classThreadPool_ac5b65ae65843df98fb6208ccda195866}\label{classThreadPool_ac5b65ae65843df98fb6208ccda195866}} 
+bool {\bfseries m\+\_\+is\+\_\+debug\+\_\+verbose}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 32 of file thread\+\_\+pool.\+h.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+thread\+\_\+pool.\+h\item 
+thread\+\_\+pool.\+cpp\end{DoxyCompactItemize}

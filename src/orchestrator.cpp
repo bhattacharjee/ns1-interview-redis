@@ -1,6 +1,12 @@
 #include "orchestrator.h"
 
-
+/**
+ * @brief close a file descriptor and remove all associated data
+ * 
+ * @param fd the file descriptor to remove
+ * @param m_pstate the state structure
+ * @param m_porchestrator pionter to the orchestrator object
+ */
 void close_and_cleanup(
     int fd,
     std::shared_ptr<State> m_pstate,
@@ -11,6 +17,10 @@ void close_and_cleanup(
     close(fd);
 }
 
+/**
+ * @brief create a server socket to listen on
+ * 
+ */
 void Orchestrator::create_server_socket()
 {
     int                     opt         = 1;
@@ -59,6 +69,12 @@ void Orchestrator::create_server_socket()
     }
 }
 
+/**
+ * @brief spawn a thread that loops to accpept new connections
+ * 
+ * @return true on successful launch
+ * @return false on unsuccessful launch
+ */
 bool Orchestrator::spawn_accepting_thread()
 {
     int retval;
@@ -76,11 +92,28 @@ bool Orchestrator::spawn_accepting_thread()
     return true;
 }
 
+/**
+ * @brief signal handler used to trap SIGUSR1
+ * The signal mechanism is used to interrupt the epoll_wait
+ * system call. In case a new connection is accepted, it
+ * must be added to the epoll structure immediately.
+ * 
+ * @param signo the signal 
+ * @param info 
+ * @param context 
+ */
 void sigusr1_handler(int signo, siginfo_t *info, void *context)
 {
     std::cout << "sigusr1 delivered" << std::endl;
     return;
 }
+
+/**
+ * @brief spawn the thread that calls epoll for ready sockets
+ * 
+ * @return true on successful launch
+ * @return false on failure to launch
+ */
 bool Orchestrator::spawn_epoll_thread()
 {
     int retval;
@@ -98,7 +131,12 @@ bool Orchestrator::spawn_epoll_thread()
 
     return true;
 }
-
+/**
+ * @brief loop and accept connections on the listening socket
+ * Once a connection is received, it then adds it to the queue
+ * which the epoll thread uses, and wakes up the epoll thread.
+ * 
+ */
 void Orchestrator::accepting_thread_loop()
 {
     struct sockaddr_in address;
@@ -164,6 +202,14 @@ void Orchestrator::accepting_thread_loop()
     }
 }
 
+/**
+ * @brief Add a file descriptor to queue for epoll
+ * This queue is monitored by the thread which executes
+ * epoll.
+ * The thread is woken up.
+ * 
+ * @param fd file descriptor to monitor for changes
+ */
 void Orchestrator::add_to_epoll_queue(int fd)
 {
     std::unique_lock lock(m_epoll_sockets_mtx);
@@ -182,12 +228,21 @@ void Orchestrator::add_to_epoll_queue(int fd)
     wakeup_epoll_thread();
 }
 
+/**
+ * @brief Wake up the epoll thread by sending it a signal
+ * 
+ */
 void Orchestrator::wakeup_epoll_thread()
 {
     // force the epoll thread to wakeup by sending SIGUSR1
     pthread_kill(m_epoll_thread_id, SIGUSR1);
 }
 
+/**
+ * @brief remove all monitoring file descriptors from epoll
+ * This is the unsafe version of the function, and the caller
+ * must hold the m_epoll_sockets_mtx lock before calling it
+ */
 void Orchestrator::epoll_empty_unsafe()
 {
     for (auto fd: m_epoll_sockets)
@@ -206,12 +261,24 @@ void Orchestrator::epoll_empty_unsafe()
         }
     }
 }
+
+/**
+ * @brief remove all monitoring file descriptors from epoll
+ * 
+ */
 void Orchestrator::epoll_empty()
 {
     std::shared_lock lock(m_epoll_sockets_mtx);
     return epoll_empty_unsafe();
 }
 
+/**
+ * @brief rebuild the epoll monitor from the set of fd's
+ * 
+ * This is the unsafe version of the function. the caller
+ * must hold the mutex before calling it.
+ * 
+ */
 void Orchestrator::epoll_rearm_unsafe()
 {
     for (auto fd: m_epoll_sockets)
@@ -229,12 +296,24 @@ void Orchestrator::epoll_rearm_unsafe()
         }
     }
 }
+
+/**
+ * @brief rebuild the epoll monitor from the set of fd's
+ * 
+ */
 void Orchestrator::epoll_rearm()
 {
     std::unique_lock lock(m_epoll_sockets_mtx);
     return epoll_rearm_unsafe();
 }
 
+/**
+ * @brief Loop and call epoll, and send ready sockets to workers
+ * 
+ * Loops and calls epoll. When a ready socket is found, it is
+ * posted to the thread pool which processes it.
+ * 
+ */
 void Orchestrator::epoll_thread_loop()
 {
     int retval;
@@ -316,6 +395,16 @@ void Orchestrator::epoll_thread_loop()
     }
 }
 
+/**
+ * @brief creates a processing job for a ready to read fd
+ * 
+ * When a file descriptor becomes ready, a job is created
+ * to be posted to a thread-pool.
+ * The job will then read from the file descriptor and then
+ * process it.
+ * 
+ * @param fd file descriptor to be posted for read
+ */
 void Orchestrator::create_processing_job(int fd)
 {
     std::shared_ptr<State>      p(nullptr);
@@ -346,6 +435,12 @@ void Orchestrator::create_processing_job(int fd)
         std::cerr << fd << ": Added a job to read the data" << std::endl;
 }
 
+/**
+ * @brief creates the file descriptor on which epoll is run
+ * 
+ * @return true on success
+ * @return false on failure
+ */
 bool Orchestrator::create_epoll_fd()
 {
     m_epoll_fd = epoll_create1(0);
@@ -358,6 +453,12 @@ bool Orchestrator::create_epoll_fd()
     return true;
 }
 
+/**
+ * @brief removes a socket from all queues and frees
+ * any data structure associated with the file descriptor
+ * 
+ * @param fd the file descriptor to remove
+ */
 void Orchestrator::remove_socket(int fd)
 {
     std::cerr << fd << ": removing from all queues" << std::endl;
@@ -395,7 +496,18 @@ void Orchestrator::remove_socket(int fd)
     }
 }
 
-bool Orchestrator::add_to_parse_queue(std::shared_ptr<State> pstate)
+/**
+ * @brief add the state associated with a file descriptor
+ * to the parse queue to be parsed, and the action specified
+ * by the command taken.
+ * 
+ * 
+ * @param pstate is the state associated with the file descriptor
+ * @return true on successful posting
+ * @return false on failure to post
+ */
+bool Orchestrator::add_to_parse_and_run_queue(
+                    std::shared_ptr<State> pstate)
 {
     ParseAndRunJob* job = new (std::nothrow) ParseAndRunJob(this, pstate);
     if (!job)
@@ -411,6 +523,14 @@ bool Orchestrator::add_to_parse_queue(std::shared_ptr<State> pstate)
     return true;
 }
 
+/**
+ * @brief add the state associated with a file descriptor to the
+ * work queue which will send the response back to the client.
+ * 
+ * @param pstate is the state associated with the file descriptor
+ * @return true on successful posting
+ * @return false on failure to post
+ */
 bool Orchestrator::add_to_write_queue(std::shared_ptr<State> pstate)
 {
     SocketWriteJob* job = new (std::nothrow) SocketWriteJob(this, pstate);
@@ -639,6 +759,16 @@ Orchestrator::do_del(std::shared_ptr<AbstractRespObject> pobj)
 }
 
 #define BUFSIZE 513
+
+/**
+ * @brief Reads from a socket and stores the values the state
+ * 
+ * It runs as a part of the read worker pool. When done,
+ * it then invokes the parser worker pool.
+ * 
+ * @return int on success it returns 0, otherwise a number
+ * to indicate the error
+ */
 int SocketReadJob::run()
 {
     m_pstate->m_state = STATE_IN_READ_LOOP;
@@ -668,7 +798,7 @@ int SocketReadJob::run()
         return read_bytes;
     }
 
-    if (false == m_porchestrator->add_to_parse_queue(m_pstate))
+    if (false == m_porchestrator->add_to_parse_and_run_queue(m_pstate))
     {
         std::cerr << fd << ": Adding to parse queue failed" << std::endl;
         close_and_cleanup(fd, m_pstate, m_porchestrator);

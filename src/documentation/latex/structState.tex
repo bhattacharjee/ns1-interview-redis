@@ -1,0 +1,71 @@
+\hypertarget{structState}{}\doxysection{State Struct Reference}
+\label{structState}\index{State@{State}}
+
+
+Collaboration diagram for State\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=202pt]{structState__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structState_a508887738c33930d903d9f51dd2d9061}\label{structState_a508887738c33930d903d9f51dd2d9061}} 
+{\bfseries State} (int fd)
+\item 
+\mbox{\Hypertarget{structState_a4e93b6afe93bea420937159c4993a627}\label{structState_a4e93b6afe93bea420937159c4993a627}} 
+void {\bfseries reset} ()
+\item 
+\mbox{\Hypertarget{structState_a55f7356bb8cb1e76b0b36d4166315b50}\label{structState_a55f7356bb8cb1e76b0b36d4166315b50}} 
+void {\bfseries set\+\_\+special\+\_\+error} (const char $\ast$err)
+\item 
+\mbox{\Hypertarget{structState_a1e9d28fdce2ba36cf396443664a90c70}\label{structState_a1e9d28fdce2ba36cf396443664a90c70}} 
+void {\bfseries set\+\_\+default\+\_\+special\+\_\+error} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structState_a828359c56391183ab5a78607c40ff7a4}\label{structState_a828359c56391183ab5a78607c40ff7a4}} 
+static std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{structState}{State}} $>$ {\bfseries create\+\_\+state} (int fd)
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structState_a0d88e2e99cda6a0eabd36e7e9f0cf4c0}\label{structState_a0d88e2e99cda6a0eabd36e7e9f0cf4c0}} 
+State\+State {\bfseries m\+\_\+state}
+\item 
+\mbox{\Hypertarget{structState_a988ecb0f5649438da46b8231ee242644}\label{structState_a988ecb0f5649438da46b8231ee242644}} 
+std\+::string {\bfseries m\+\_\+read\+\_\+data}
+\item 
+\mbox{\Hypertarget{structState_ade1cc2e507be1d7bee0c2f95e3fc7e65}\label{structState_ade1cc2e507be1d7bee0c2f95e3fc7e65}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classAbstractRespObject}{Abstract\+Resp\+Object}} $>$ {\bfseries m\+\_\+resp\+\_\+object}
+\item 
+\mbox{\Hypertarget{structState_a48a5580d46b04e5cbe6cff7d927818a8}\label{structState_a48a5580d46b04e5cbe6cff7d927818a8}} 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classAbstractRespObject}{Abstract\+Resp\+Object}} $>$ {\bfseries m\+\_\+response}
+\item 
+\mbox{\Hypertarget{structState_a76b011f07efad43ff732fc463852ada1}\label{structState_a76b011f07efad43ff732fc463852ada1}} 
+int {\bfseries m\+\_\+socket}
+\item 
+\mbox{\Hypertarget{structState_a9d78db0c764d9c1fb4f5a9f819f7ede0}\label{structState_a9d78db0c764d9c1fb4f5a9f819f7ede0}} 
+std\+::mutex {\bfseries m\+\_\+mutex}
+\item 
+\mbox{\Hypertarget{structState_a27ec0a7df01f602de06fa50d04999370}\label{structState_a27ec0a7df01f602de06fa50d04999370}} 
+bool {\bfseries m\+\_\+is\+\_\+error}
+\item 
+\mbox{\Hypertarget{structState_a6224749157aef17765f15f311da6d601}\label{structState_a6224749157aef17765f15f311da6d601}} 
+char {\bfseries m\+\_\+special\+\_\+error} \mbox{[}64\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 21 of file state.\+h.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+state.\+h\end{DoxyCompactItemize}
