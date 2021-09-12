@@ -106,6 +106,12 @@ void Orchestrator::accepting_thread_loop()
             continue;
         }
 
+        int flags = fcntl(new_socket, F_GETFL, 0);
+        if (0 != fcntl(new_socket, F_SETFL, flags | O_NONBLOCK))
+        {
+            std::cerr << new_socket << ": could not set nonblocking" << std::endl;
+        }
+
         std::unique_lock    lock(m_all_sockets_mtx);
         try
         {
@@ -136,6 +142,9 @@ void Orchestrator::accepting_thread_loop()
             exit(1);
         }
         lock2.unlock();
+
+        std::cerr << new_socket << \
+            ": Accepted, waking up epoll thread" << std::endl;
         
         wakeup_epoll_thread();
     }
@@ -157,7 +166,8 @@ void Orchestrator::epoll_empty_unsafe()
         if (epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, &event))
         {
             perror("epoll_ctl");
-            std::cerr << "epoll_ctl failed, errno = " << errno << std::endl;
+            std::cerr << "epoll_ctl failed fd = " << fd \
+                <<" errno = " << errno << std::endl;
         }
     }
 }
@@ -226,6 +236,8 @@ void Orchestrator::epoll_thread_loop()
                     if (0 == events[i].events)
                         continue;
                     ready_fds.insert(events[i].data.fd);
+                    std::cerr << events[i].data.fd << \
+                        ": ePOll, ready for read" << std::endl;
                 }
             }
             catch(...)
@@ -278,6 +290,20 @@ void Orchestrator::create_processing_job(int fd)
     }
 
     p->m_state = STATE_WAITING_FOR_READ_JOB;
+
+    SocketReadJob* job = new (std::nothrow) SocketReadJob(this, p);
+    if (!job)
+    {
+        std::cerr << "Out of memory" << std::endl;
+        return;
+    }
+
+    if (0 != m_processing_threadpool->add_job(std::shared_ptr<JobInterface>(job)))
+    {
+        std::cerr << "Error adding job to processing threadpool" << std::endl;
+    }
+    else
+        std::cerr << fd << ": Added a job to read the data" << std::endl;
 }
 
 bool Orchestrator::create_epoll_fd()
@@ -294,6 +320,7 @@ bool Orchestrator::create_epoll_fd()
 
 void Orchestrator::remove_socket(int fd)
 {
+    std::cerr << fd << ": removing from all queues" << std::endl;
     {
         std::unique_lock lock(m_all_sockets_mtx);
         auto it = m_all_sockets.find(fd);
@@ -326,4 +353,74 @@ void Orchestrator::remove_socket(int fd)
         if (it != m_write_sockets.end())
             m_write_sockets.erase(it);
     }
+}
+
+bool Orchestrator::add_to_parse_queue(std::shared_ptr<State> pstate)
+{
+    SocketParseJob* job = new (std::nothrow) SocketParseJob(this, pstate);
+    if (!job)
+    {
+        std::cerr << "Out of memory" << std::endl;
+        return false;
+    }
+
+    if (0 != m_parse_threadpool->add_job(std::shared_ptr<JobInterface>(job)))
+        return false;
+    
+    return true;
+}
+
+#define BUFSIZE 513
+int SocketReadJob::run()
+{
+    m_pstate->m_state = STATE_IN_READ_LOOP;
+    auto fd = m_pstate->m_socket;
+    std::cerr << fd << ": Picked up for reading" << std::endl;
+    char buffer[BUFSIZE];
+
+    int read_bytes;
+    int save_errno;
+    
+    do 
+    {
+        bzero(buffer, sizeof(buffer));
+        read_bytes = read(fd, buffer, BUFSIZE);
+        save_errno = errno;
+        if (read_bytes > 0)
+            m_pstate->m_read_data += buffer;
+    } while (read_bytes > 0);
+
+    if (-1 == read_bytes && EAGAIN != save_errno)
+    {
+        perror("read");
+        std::cerr << fd << ": error, read " << read_bytes << \
+            " bytes, err = " << errno << std::endl;
+        close(fd);
+        m_pstate->m_mutex.unlock();
+        m_porchestrator->remove_socket(fd);
+        return read_bytes;
+    }
+
+    if (false == m_porchestrator->add_to_parse_queue(m_pstate))
+    {
+        std::cerr << fd << ": Adding to parse queue failed" << std::endl;
+        close(fd);
+        m_pstate->m_mutex.unlock();
+        m_porchestrator->remove_socket(fd);
+        return -1;
+    }
+
+    std::cerr << fd << ": Added to parse queue" << std::endl;
+
+    return 0;
+}
+
+int SocketParseJob::run()
+{
+    m_pstate->m_state = STATE_PARSING;
+    auto fd = m_pstate->m_socket;
+    std::cerr << fd << ": Picked up for parsing" << std::endl;
+
+    return 0;
+
 }
