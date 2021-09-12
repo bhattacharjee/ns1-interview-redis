@@ -3,7 +3,7 @@ LDFLAGS = -lpthread
 CPPFLAGS = -std=c++17 -g
 CPP = c++ $(CPPFLAGS)
 
-all: test server
+all: test server docs
 
 thread_pool_test: thread_pool.cpp thread_pool_test.cpp $(HEADERS)
 	$(CPP) thread_pool_test.cpp thread_pool.cpp -o thread_pool_test $(LDFLAGS)
@@ -19,5 +19,10 @@ server: orchestrator.cpp server.cpp data_store.cpp resp_parser.cpp thread_pool.c
 
 test: ds_tests resp_parser_test thread_pool_test 
 
+
+docs:
+	doxygen Doxyfile
+
 clean:
 	rm -f server thread_pool_test ds_tests resp_parser_test *.o
+	rm -rf documentation
