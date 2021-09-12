@@ -1,5 +1,16 @@
 #include "orchestrator.h"
 
+
+void close_and_cleanup(
+    int fd,
+    std::shared_ptr<State> m_pstate,
+    Orchestrator* m_porchestrator)
+{
+    m_pstate->m_mutex.unlock();
+    m_porchestrator->remove_socket(fd);
+    close(fd);
+}
+
 void Orchestrator::create_server_socket()
 {
     int                     opt         = 1;
@@ -357,14 +368,14 @@ void Orchestrator::remove_socket(int fd)
 
 bool Orchestrator::add_to_parse_queue(std::shared_ptr<State> pstate)
 {
-    SocketParseJob* job = new (std::nothrow) SocketParseJob(this, pstate);
+    ParseAndRunJob* job = new (std::nothrow) ParseAndRunJob(this, pstate);
     if (!job)
     {
         std::cerr << "Out of memory" << std::endl;
         return false;
     }
 
-    if (0 != m_parse_threadpool->add_job(std::shared_ptr<JobInterface>(job)))
+    if (0 != m_parse_and_run_threadpool->add_job(std::shared_ptr<JobInterface>(job)))
         return false;
     
     return true;
@@ -395,18 +406,14 @@ int SocketReadJob::run()
         perror("read");
         std::cerr << fd << ": error, read " << read_bytes << \
             " bytes, err = " << errno << std::endl;
-        close(fd);
-        m_pstate->m_mutex.unlock();
-        m_porchestrator->remove_socket(fd);
+        close_and_cleanup(fd, m_pstate, m_porchestrator);
         return read_bytes;
     }
 
     if (false == m_porchestrator->add_to_parse_queue(m_pstate))
     {
         std::cerr << fd << ": Adding to parse queue failed" << std::endl;
-        close(fd);
-        m_pstate->m_mutex.unlock();
-        m_porchestrator->remove_socket(fd);
+        close_and_cleanup(fd, m_pstate, m_porchestrator);
         return -1;
     }
 
@@ -415,12 +422,62 @@ int SocketReadJob::run()
     return 0;
 }
 
-int SocketParseJob::run()
+
+int ParseAndRunJob::run()
 {
     m_pstate->m_state = STATE_PARSING;
     auto fd = m_pstate->m_socket;
     std::cerr << fd << ": Picked up for parsing" << std::endl;
+    /*
+
+    RespParser parser(m_pstate->m_read_data);
+    auto [err, parsed_obj] = parser.get_generic_object();
+    if (ERROR_SUCCESS != err)
+    {
+        std::cerr << fd << ": Could not parse" << std::endl;
+        m_pstate->m_is_error = true;
+        RespError* e = new RespError(std::string("Unable to parse"));
+        m_state->m_response = std::shared_ptr<AbstractRespObject>(e);
+
+        if (false == m_porchestrator->add_to_write_queue(m_pstate))
+        {
+            std::cerr << fd << ": Add to write queue failed" << std::endl;
+            close_and_cleanup(fd, m_pstate, m_porchestrator);
+            return -1;
+        }
+
+        return -1;
+    }
+
+    m_pstate->m_resp_object = parsed_obj;
+
+    auto [is_fatal, response] = m_porchestrator->do_operation(
+                                    m_pstate->m_resp_object);
+    m_pstate->m_response = response;
+    if (is_fatal)
+    {
+        m_pstate->m_is_error = true;
+        if (!response)
+            m_pstate->set_default_special_error();
+    }
+
+    if (false == m_porchestrator->add_to_write_queue(m_pstate))
+    {
+        std::cerr << fd << ": Add to write queue failed" << std::endl;
+        close_and_cleanup(fd, m_pstate, m_porchestrator);
+        return -1;    
+    }
+
+    std::cerr << fd << ": Added to write queue" << std::endl;
+    */
 
     return 0;
 
+}
+
+int SocketWriteJob::run()
+{
+    m_pstate->m_state = STATE_PARSING;
+    auto fd = m_pstate->m_socket;
+    return 0;
 }

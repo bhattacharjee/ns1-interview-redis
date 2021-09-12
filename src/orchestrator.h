@@ -23,7 +23,7 @@
 
 class Orchestrator;
 class SocketReadJob;
-class SocketParseJob;
+class ParseAndRunJob;
 
 class SocketReadJob: public JobInterface
 {
@@ -42,13 +42,30 @@ public:
     int run();
 };
 
-class SocketParseJob: public JobInterface
+class ParseAndRunJob: public JobInterface
 {
 public:
     std::shared_ptr<State>      m_pstate;
     Orchestrator*               m_porchestrator;
 
-    SocketParseJob(
+    ParseAndRunJob(
+        Orchestrator*           porch,
+        std::shared_ptr<State>  pstate)
+    {
+        m_porchestrator = porch;
+        m_pstate = pstate;
+    }
+
+    int run();
+};
+
+class SocketWriteJob: public JobInterface
+{
+public:
+    std::shared_ptr<State>      m_pstate;
+    Orchestrator*               m_porchestrator;
+
+    SocketWriteJob(
         Orchestrator*           porch,
         std::shared_ptr<State>  pstate)
     {
@@ -88,7 +105,7 @@ public:
     std::unordered_set<int>                         m_processing_sockets;
     std::shared_mutex                               m_processing_sockets_mtx;
 
-    ThreadPool*                                     m_parse_threadpool;
+    ThreadPool*                                     m_parse_and_run_threadpool;
 
     ThreadPool*                                     m_write_threadpool;
     std::unordered_set<int>                         m_write_sockets;
@@ -110,7 +127,7 @@ public:
         m_read_threadpool = tfp.create_thread_pool(8, false);
         m_processing_threadpool = tfp.create_thread_pool(8, false);
         m_write_threadpool = tfp.create_thread_pool(8, false);
-        m_parse_threadpool = tfp.create_thread_pool(8, false);
+        m_parse_and_run_threadpool = tfp.create_thread_pool(8, false);
         m_is_destroying = false;
     }
 
@@ -126,12 +143,12 @@ public:
             m_processing_threadpool->destroy();
         if (m_write_threadpool)
             m_write_threadpool->destroy();
-        if (m_parse_threadpool)
-            m_parse_threadpool->destroy();
+        if (m_parse_and_run_threadpool)
+            m_parse_and_run_threadpool->destroy();
         delete m_read_threadpool;
         delete m_processing_threadpool;
         delete m_write_threadpool;
-        delete m_parse_threadpool;
+        delete m_parse_and_run_threadpool;
     }
 
     void create_server_socket();
@@ -148,6 +165,11 @@ public:
     void epoll_empty_unsafe();
     void create_processing_job(int fd);
     bool add_to_parse_queue(std::shared_ptr<State> pstate);
+    bool add_to_write_queue(std::shared_ptr<State> pstate);
+
+    std::tuple<bool, std::shared_ptr<AbstractRespObject> >
+        do_operation(std::shared_ptr<AbstractRespObject> command);
+
 
     static void* accepting_thread_pthread_fn(void* arg)
     {
