@@ -109,7 +109,12 @@ void Orchestrator::accepting_thread_loop()
         std::unique_lock    lock(m_all_sockets_mtx);
         try
         {
-            m_all_sockets.insert(new_socket);
+            auto state = State::create_state(new_socket);
+            if (state)
+            {
+                state->m_state = STATE_ACCEPTED;
+                m_all_sockets[new_socket] = state;
+            }
         }
         catch (...)
         {
@@ -119,10 +124,10 @@ void Orchestrator::accepting_thread_loop()
         }
         lock.unlock();
 
-        std::unique_lock    lock2(m_waiting_for_read_sockets_mtx);
+        std::unique_lock    lock2(m_epoll_sockets_mtx);
         try
         {
-            m_waiting_for_read_sockets.insert(new_socket);
+            m_epoll_sockets.insert(new_socket);
         }
         catch(const std::exception& e)
         {
@@ -142,9 +147,50 @@ void Orchestrator::wakeup_epoll_thread()
     pthread_kill(m_epoll_thread_id, SIGUSR1);
 }
 
+void Orchestrator::epoll_empty_unsafe()
+{
+    for (auto fd: m_epoll_sockets)
+    {
+        struct epoll_event event;
+        event.data.fd = fd;
+        event.events = EPOLLIN | EPOLLOUT | EPOLLHUP | EPOLLERR | EPOLLET;
+        if (epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, &event))
+        {
+            perror("epoll_ctl");
+            std::cerr << "epoll_ctl failed, errno = " << errno << std::endl;
+        }
+    }
+}
+void Orchestrator::epoll_empty()
+{
+    std::shared_lock lock(m_epoll_sockets_mtx);
+    return epoll_empty_unsafe();
+}
+
+void Orchestrator::epoll_rearm_unsafe()
+{
+    for (auto fd: m_epoll_sockets)
+    {
+        struct epoll_event event;
+        event.data.fd = fd;
+        if (epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, fd, &event))
+        {
+            perror("epoll_ctl");
+            std::cerr << "epoll_ctl failed, errno = " << errno << std::endl;
+        }
+    }
+}
+void Orchestrator::epoll_rearm()
+{
+    std::unique_lock lock(m_epoll_sockets_mtx);
+    return epoll_rearm_unsafe();
+}
+
+#define MAX_EVENTS 10
 void Orchestrator::epoll_thread_loop()
 {
     int retval;
+    struct epoll_event events[MAX_EVENTS + 1];
 
     struct sigaction action;
     action.sa_sigaction = &sigusr1_handler;
@@ -160,7 +206,105 @@ void Orchestrator::epoll_thread_loop()
     while(true)
     {
         std::cerr << "epoll looping" << std::endl;
-        sleep(5);
+        std::unordered_set<int> ready_fds;
+        epoll_empty();
+        epoll_rearm();
+        bzero(events, sizeof(events));
+        int n_fd = epoll_wait(
+            m_epoll_fd,
+            events,
+            MAX_EVENTS,
+            1000);
+        if (n_fd)
+        {
+            std::shared_lock lock0(m_all_sockets_mtx);
+            std::unique_lock lock(m_epoll_sockets_mtx);
+            for (int i = 0; i < n_fd; i++)
+            {
+                if (0 == events[i].events)
+                    continue;
+                ready_fds.insert(events[i].data.fd);
+            }
+
+            epoll_empty_unsafe();
+            for (auto fd: ready_fds)
+            {
+                auto it = m_epoll_sockets.find(fd);
+                if (it != m_epoll_sockets.end())
+                    m_epoll_sockets.erase(it);
+            }
+
+            if (ready_fds.size())
+            {
+                std::unique_lock lock2(m_processing_sockets_mtx);
+                for (auto fd: ready_fds)
+                    m_processing_sockets.insert(fd);
+            }
+
+            lock0.unlock();
+            lock.unlock();
+            for (auto fd: ready_fds)
+                create_processing_job(fd);
+        }
     }
 }
 
+void Orchestrator::create_processing_job(int fd)
+{
+    std::shared_ptr<State>      p;
+
+    {
+        std::shared_mutex(m_all_sockets_mtx);
+        assert(m_all_sockets.find(fd) != m_all_sockets.end());
+        p = m_all_sockets[fd];
+        p->m_mutex.lock();
+    }
+}
+
+bool Orchestrator::create_epoll_fd()
+{
+    m_epoll_fd = epoll_create1(0);
+    if (m_epoll_fd < 0)
+    {
+        perror("epoll_create");
+        std::cerr << "epoll create failed, errno = " << errno;
+        return false;
+    }
+    return true;
+}
+
+void Orchestrator::remove_socket(int fd)
+{
+    {
+        std::unique_lock lock(m_all_sockets_mtx);
+        auto it = m_all_sockets.find(fd);
+        if (it != m_all_sockets.end())
+        {
+            auto state = m_all_sockets[fd];
+            state->m_mutex.lock();
+            m_all_sockets.erase(it);
+            state->m_mutex.unlock();
+        }
+    }
+
+    {
+        std::unique_lock lock(m_epoll_sockets_mtx);
+        auto it = m_epoll_sockets.find(fd);
+        if (it != m_epoll_sockets.end())
+            m_epoll_sockets.erase(it);
+    }
+
+    {
+        std::unique_lock lock(m_processing_sockets_mtx);
+        auto it = m_processing_sockets.find(fd);
+        if (it != m_processing_sockets.end())
+            m_processing_sockets.erase(it);
+    }
+
+    {
+        std::unique_lock lock(m_write_sockets_mtx);
+        auto it = m_write_sockets.find(fd);
+        if (it != m_write_sockets.end())
+            m_write_sockets.erase(it);
+    }
+}

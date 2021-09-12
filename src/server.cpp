@@ -4,9 +4,14 @@
 int main(int argc, char** argv)
 {
     std::cout << "Starting server ..." << std::endl;
-    
+
     Orchestrator orchestrator;
     orchestrator.create_server_socket();
+    if (!orchestrator.create_epoll_fd())
+    {
+        std::cerr << "failed to create epoll socket." << std::endl;
+        goto out;
+    }
     if (!orchestrator.spawn_epoll_thread())
     {
         std::cerr << "Failed to spawn thread that polls for ready sockets" << std::endl;
