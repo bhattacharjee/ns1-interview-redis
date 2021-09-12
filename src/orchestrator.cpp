@@ -161,6 +161,24 @@ void Orchestrator::accepting_thread_loop()
     }
 }
 
+void Orchestrator::add_to_epoll_queue(int fd)
+{
+    std::unique_lock lock(m_epoll_sockets_mtx);
+    try
+    {
+        m_epoll_sockets.insert(fd);
+    }
+    catch(...)
+    {
+        std::cerr << "Unknown exception" << std::endl;
+        assert(0);
+        exit(1);
+    }
+    lock.unlock();
+    std::cerr << fd << ": Added to epoll queue" << std::endl;
+    wakeup_epoll_thread();
+}
+
 void Orchestrator::wakeup_epoll_thread()
 {
     // force the epoll thread to wakeup by sending SIGUSR1
@@ -474,10 +492,8 @@ Orchestrator::do_operation(std::shared_ptr<AbstractRespObject> command)
         return do_get(command);
     else if (COMMAND_SET == cmd_type)
         return do_set(command);
-    /*
     else if (COMMAND_DEL == cmd_type)
-        return do_get(command);
-    */
+        return do_del(command);
 
     RespError* error = new (std::nothrow) RespError(std::string("generic error"));
     if (!error)
@@ -579,6 +595,40 @@ Orchestrator::do_get(std::shared_ptr<AbstractRespObject> pobj)
     return std::make_tuple(true, ret);
 }
 
+bool Orchestrator::do_del_internal(std::shared_ptr<AbstractRespObject> pobj)
+{
+    auto key = pobj->to_string();
+    auto partition = get_partition(key);
+    return m_datastore[partition].del(key.c_str());
+}
+
+std::tuple<bool, std::shared_ptr<AbstractRespObject> >
+Orchestrator::do_del(std::shared_ptr<AbstractRespObject> pobj)
+{
+    RespArray* p_array_obj = static_cast<RespArray*>(pobj.get());
+    auto array = p_array_obj->get_array();
+    
+    int del_count = 0;
+    for (int i = 1; i < array.size(); i++)
+    {
+        if (do_del_internal(array[i]))
+            del_count++;
+    }
+
+    RespInteger* ret = new (std::nothrow) RespInteger(del_count);
+    if (!ret)
+    {
+        std::cerr << "Out of memory " << std::endl;
+        exit(1);
+    }
+
+    return std::make_tuple(
+        false,
+        std::shared_ptr<AbstractRespObject>(
+            static_cast<AbstractRespObject*>(ret)));
+
+}
+
 #define BUFSIZE 513
 int SocketReadJob::run()
 {
@@ -599,7 +649,8 @@ int SocketReadJob::run()
             m_pstate->m_read_data += buffer;
     } while (read_bytes > 0);
 
-    if (-1 == read_bytes && EAGAIN != save_errno)
+    if ((-1 == read_bytes && EAGAIN != save_errno) ||
+        m_pstate->m_read_data == std::string(""))
     {
         perror("read");
         std::cerr << fd << ": error, read " << read_bytes << \
@@ -632,9 +683,13 @@ int ParseAndRunJob::run()
     auto [err, parsed_obj] = parser.get_generic_object();
     if (ERROR_SUCCESS != err)
     {
-        std::cerr << fd << ": Could not parse" << std::endl;
+        std::cerr << fd << ": Could not parse command '" \
+            << m_pstate->m_read_data << "'" << std::endl;
         m_pstate->m_is_error = true;
-        RespError* e = new RespError(std::string("Unable to parse"));
+        RespError* e = new RespError(
+            std::string("Unable to parse '") 
+                + std::string(m_pstate->m_read_data)
+                + std::string("'. Try again."));
         m_pstate->m_response = std::shared_ptr<AbstractRespObject>((AbstractRespObject*)e);
 
         if (false == m_porchestrator->add_to_write_queue(m_pstate))
@@ -705,7 +760,7 @@ int SocketWriteJob::run()
 
     auto bytes_written = write(fd, buffer, buflen);
 
-    if (-bytes_written < 0)
+    if (bytes_written < 0)
     {
         perror("write");
         std::cout << fd << ": Write failed with rc = " << bytes_written \
@@ -714,8 +769,14 @@ int SocketWriteJob::run()
         return -1;
     }
 
-    // TODO: clear the state and add to the polling queue
-    close_and_cleanup(fd, m_pstate, m_porchestrator);
+    if (m_pstate->m_is_error)
+        close_and_cleanup(fd, m_pstate, m_porchestrator);
+    else
+    {
+        std::cerr << fd << ": Adding back to epoll queue" << std::endl;
+        m_pstate->reset();
+        m_porchestrator->add_to_epoll_queue(fd);
+    }
 
     return 0;
 }

@@ -45,6 +45,17 @@ struct State
         m_is_error = false;
     }
 
+    void reset()
+    {
+        m_state = STATE_INVALID;
+        m_read_data = std::string("");
+        m_resp_object = std::shared_ptr<AbstractRespObject>(nullptr);
+        m_response = std::shared_ptr<AbstractRespObject>(nullptr);
+        m_is_error = false;
+        m_special_error[0] = 0;
+        m_mutex.unlock();
+    }
+
     static std::shared_ptr<State>
     create_state(int fd)
     {

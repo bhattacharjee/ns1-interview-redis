@@ -185,6 +185,11 @@ public:
     std::tuple<bool, std::shared_ptr<AbstractRespObject> >
         do_set(std::shared_ptr<AbstractRespObject> p);
 
+    std::tuple<bool, std::shared_ptr<AbstractRespObject> >
+        do_del(std::shared_ptr<AbstractRespObject> p);
+
+    bool do_del_internal(std::shared_ptr<AbstractRespObject> pobj);
+
 
     static void* accepting_thread_pthread_fn(void* arg)
     {
@@ -203,6 +208,9 @@ public:
 
     std::tuple<bool, command_type_t>
         is_valid_command(std::shared_ptr<AbstractRespObject> p);
+    
+    void add_to_epoll_queue(int fd);
+
     int get_partition(const std::string& s);
 };
 
