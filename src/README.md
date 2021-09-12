@@ -16,7 +16,7 @@ Each key maps to one hash-map, and the decision is taken based on the first char
 
 ## Extended Documentation
 To address the documentation is available in the documentation folder.
-To access it, please open the file **src/documentation/html/index.html** file in a browser. Firefox is recommended.
+To access it, please open the file **documentation/html/index.html** file in a browser. Firefox is recommended.
 
 To access the documentation, click on one of the two tabs in the main page:
 1. Classes

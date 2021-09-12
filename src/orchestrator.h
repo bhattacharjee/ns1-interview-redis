@@ -196,6 +196,17 @@ public:
  * 2. A thread that runs epoll() on all accepted sockets to see
  *    which sockets are ready for reading.
  * 
+ * TODO: Define a lock heirarchy.
+ * Need to spend more time on it to figure out if this is the
+ * most logical heirarchy or something else makes more sense
+ * Mostly locks should not be held simultaneously.
+ * But in case they need to, this should be the order
+ * 
+ * 1. m_all_sockets_mtx
+ * 2. State.m_mutex
+ * 3. m_epoll_sockets_mtx
+ * 4. m_write_sockets_mtx
+ * 5. m_write_sockets_mtx
  */
 class Orchestrator
 {
