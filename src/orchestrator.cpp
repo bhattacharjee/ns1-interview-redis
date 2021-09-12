@@ -186,11 +186,10 @@ void Orchestrator::epoll_rearm()
     return epoll_rearm_unsafe();
 }
 
-#define MAX_EVENTS 10
 void Orchestrator::epoll_thread_loop()
 {
     int retval;
-    struct epoll_event events[MAX_EVENTS + 1];
+    struct epoll_event events[MAX_EPOLL_EVENTS + 1];
 
     struct sigaction action;
     action.sa_sigaction = &sigusr1_handler;
@@ -213,18 +212,26 @@ void Orchestrator::epoll_thread_loop()
         int n_fd = epoll_wait(
             m_epoll_fd,
             events,
-            MAX_EVENTS,
+            MAX_EPOLL_EVENTS,
             1000);
         if (n_fd)
         {
             // Take both locks to maintain lock heirarchy
             std::shared_lock lock0(m_all_sockets_mtx);
             std::unique_lock lock(m_epoll_sockets_mtx);
-            for (int i = 0; i < n_fd; i++)
+            try
+            {    
+                for (int i = 0; i < n_fd; i++)
+                {
+                    if (0 == events[i].events)
+                        continue;
+                    ready_fds.insert(events[i].data.fd);
+                }
+            }
+            catch(...)
             {
-                if (0 == events[i].events)
-                    continue;
-                ready_fds.insert(events[i].data.fd);
+                std::cerr << __FILE__ << ":" << __LINE__;
+                std::cerr << " Error inserting into set" << std::endl;
             }
 
             epoll_empty_unsafe();
@@ -238,8 +245,16 @@ void Orchestrator::epoll_thread_loop()
             if (ready_fds.size())
             {
                 std::unique_lock lock2(m_processing_sockets_mtx);
-                for (auto fd: ready_fds)
-                    m_processing_sockets.insert(fd);
+                try
+                {
+                    for (auto fd: ready_fds)
+                        m_processing_sockets.insert(fd);
+                }
+                catch(...)
+                {
+                    std::cerr << __FILE__ << ":" << __LINE__;
+                    std::cerr << " Error inserting into set" << std::endl;
+                }
             }
 
             lock0.unlock();

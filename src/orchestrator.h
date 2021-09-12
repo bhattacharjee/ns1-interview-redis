@@ -18,6 +18,7 @@
 
 #define NUM_DATASTORES 10
 #define PORTNUM 6379
+#define MAX_EPOLL_EVENTS 10
 
 class Orchestrator
 {
