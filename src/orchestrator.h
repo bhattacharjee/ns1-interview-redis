@@ -640,6 +640,13 @@ public:
      * @return int partition id of the correct hash to use
      */
     int get_partition(const std::string& s);
+
+    /**
+     * @brief run a server
+     * 
+     * @return int 0 on success
+     */
+    int run_server();
 };
 
 #endif /* #ifndef ORCHESTRATOR_H_ */

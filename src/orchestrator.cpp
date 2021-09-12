@@ -842,6 +842,33 @@ Orchestrator::do_del(std::shared_ptr<AbstractRespObject> pobj)
 
 }
 
+/**
+ * @brief start the server
+ * 
+ * @return int 0 on success
+ */
+int Orchestrator::run_server()
+{
+    create_server_socket();
+    if (!create_epoll_fd())
+    {
+        std::cerr << "failed to create epoll socket." << std::endl;
+        return -1;
+    }
+    if (!spawn_epoll_thread())
+    {
+        std::cerr << "Failed to spawn thread that polls for ready sockets" << std::endl;
+        return -1;
+    }
+    if (!spawn_accepting_thread())
+    {
+        std::cerr << "Failed to spawn thread that accepts connections" << std::endl;
+        return -1;
+    }
+
+    return 0;
+}
+
 #define BUFSIZE 513
 
 /**

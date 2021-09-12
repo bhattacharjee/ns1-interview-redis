@@ -6,21 +6,10 @@ int main(int argc, char** argv)
     std::cout << "Starting server ..." << std::endl;
 
     Orchestrator orchestrator;
-    orchestrator.create_server_socket();
-    if (!orchestrator.create_epoll_fd())
+    if (orchestrator.run_server())
     {
-        std::cerr << "failed to create epoll socket." << std::endl;
-        goto out;
-    }
-    if (!orchestrator.spawn_epoll_thread())
-    {
-        std::cerr << "Failed to spawn thread that polls for ready sockets" << std::endl;
-        goto out;
-    }
-    if (!orchestrator.spawn_accepting_thread())
-    {
-        std::cerr << "Failed to spawn thread that accepts connections" << std::endl;
-        goto out;
+        std::cerr << "could not start server " << std::endl;
+        exit(1);
     }
     while (true)
     {
@@ -28,6 +17,5 @@ int main(int argc, char** argv)
         if (orchestrator.m_is_destroying)
             break;
     }
-out:
     return 0;
 }
