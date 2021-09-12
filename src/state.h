@@ -27,6 +27,10 @@ struct State
     int                                     m_socket;
     mutable std::mutex                      m_mutex;
 
+    // If this is set, then the socket must be closed
+    // after writing
+    bool                                    m_is_error;
+
     // In case of some unrecoverable error, this will
     // be used to communicate the error to the client
     char m_special_error[64];
@@ -38,6 +42,7 @@ struct State
         m_state = STATE_INVALID;
         m_socket = fd;
         m_special_error[0] = 0;
+        m_is_error = false;
     }
 
     static std::shared_ptr<State>
@@ -50,6 +55,7 @@ struct State
     void set_special_error(const char* err)
     {
         strncpy(m_special_error, err, 63);
+        m_is_error = true;
     }
 
     void set_default_special_error()
