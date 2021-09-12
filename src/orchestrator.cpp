@@ -225,7 +225,7 @@ void Orchestrator::epoll_thread_loop()
 
     while(true)
     {
-        std::cerr << "epoll looping" << std::endl;
+        //std::cerr << "epoll looping" << std::endl;
         std::unordered_set<int> ready_fds;
         epoll_empty();
         epoll_rearm();
@@ -472,11 +472,11 @@ Orchestrator::do_operation(std::shared_ptr<AbstractRespObject> command)
 
     if (COMMAND_GET == cmd_type)
         return do_get(command);
+    else if (COMMAND_SET == cmd_type)
+        return do_set(command);
     /*
     else if (COMMAND_DEL == cmd_type)
         return do_get(command);
-    else if (COMMAND_SET == cmd_type)
-        return do_set(command);
     */
 
     RespError* error = new (std::nothrow) RespError(std::string("generic error"));
@@ -490,6 +490,44 @@ Orchestrator::do_operation(std::shared_ptr<AbstractRespObject> command)
 }
 
 std::tuple<bool, std::shared_ptr<AbstractRespObject> >
+Orchestrator::do_set(std::shared_ptr<AbstractRespObject> pobj)
+{
+    RespArray* p_array_obj = static_cast<RespArray*>(pobj.get());
+    auto array = p_array_obj->get_array();
+    auto varname = array[1]->to_string();
+    auto partition = get_partition(varname);
+    auto value = array[2]->serialize();
+
+    //std::cerr << "Setting " << varname << " = " << value << std::endl;
+    //std::cerr << "Storiing " << varname << " = " << value << " partition = " << partition << std::endl;
+    auto success = m_datastore[partition].set(varname.c_str(), value.c_str());
+    if (success)
+    {
+        auto *p = new (std::nothrow) RespString(std::string("OK"));
+        if (!p)
+        {
+            std::cerr << "Outo of memory" << std::endl;
+            exit(1);
+        }
+        return std::make_tuple(
+            false, 
+            std::shared_ptr<AbstractRespObject>(\
+                static_cast<AbstractRespObject*>(p)));
+    }
+
+    RespError* err_obj = new RespError("Failed to set the value");
+    if (!err_obj)
+    {
+        std::cerr << "Out of memory " << std::endl;
+        exit(1);
+    }
+
+    return std::make_tuple(
+        false,
+        std::shared_ptr<AbstractRespObject>((AbstractRespObject*)err_obj));
+}
+
+std::tuple<bool, std::shared_ptr<AbstractRespObject> >
 Orchestrator::do_get(std::shared_ptr<AbstractRespObject> pobj)
 {
     RespArray* p_array_obj = static_cast<RespArray*>(pobj.get());
@@ -497,6 +535,8 @@ Orchestrator::do_get(std::shared_ptr<AbstractRespObject> pobj)
     auto varname = array[1]->to_string();
     auto partition = get_partition(varname);
     
+    //std::cerr << "Fetching " << varname << " from partition " << partition << std::endl;
+    //m_datastore[partition].set(varname.c_str(), "$6\r\nfoobar\r\n");
     auto [found, value] = m_datastore[partition].get(varname.c_str());
 
     if (!found)
@@ -510,7 +550,7 @@ Orchestrator::do_get(std::shared_ptr<AbstractRespObject> pobj)
 
         p->set_null(true);
         return std::make_tuple(
-            true, 
+            false, 
             std::shared_ptr<AbstractRespObject>(\
                 static_cast<AbstractRespObject*>(p)));
     }
@@ -531,7 +571,7 @@ Orchestrator::do_get(std::shared_ptr<AbstractRespObject> pobj)
 
         p->set_null(true);
         return std::make_tuple(
-            true, 
+            false, 
             std::shared_ptr<AbstractRespObject>(\
                 static_cast<AbstractRespObject*>(p)));
     }
@@ -612,12 +652,17 @@ int ParseAndRunJob::run()
     auto [is_fatal, response] = m_porchestrator->do_operation(
                                     m_pstate->m_resp_object);
     m_pstate->m_response = response;
+    std::cout << m_pstate->m_response << std::endl;
     if (is_fatal)
     {
         m_pstate->m_is_error = true;
         if (!response)
             m_pstate->set_default_special_error();
     }
+
+    std::cout << "------------------------" << std::endl;
+    std::cout << m_pstate->m_response->to_string() << " " << std::endl;
+    std::cout << m_pstate->m_response->serialize() << std::endl;
 
     if (false == m_porchestrator->add_to_write_queue(m_pstate))
     {

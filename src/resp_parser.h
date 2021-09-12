@@ -115,7 +115,7 @@ public:
     std::string             m_value;
     bool                    m_isnull;
 
-    RespBulkString(std::string s):
+    RespBulkString(const std::string& s):
         m_value(s)
     {
         m_is_aggregate = false;
