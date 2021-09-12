@@ -3,6 +3,7 @@ LDFLAGS = -lpthread
 CPPFLAGS = -std=c++17 -g
 CPP = c++ $(CPPFLAGS)
 
+all: test server
 
 thread_pool_test: thread_pool.cpp thread_pool_test.cpp $(HEADERS)
 	$(CPP) thread_pool_test.cpp thread_pool.cpp -o thread_pool_test $(LDFLAGS)
