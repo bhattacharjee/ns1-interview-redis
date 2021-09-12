@@ -33,9 +33,25 @@ class ParseAndRunJob;
  */
 typedef enum
 {
+    /**
+     * @brief invalid command
+     * 
+     */
     COMMAND_INVALID,
+    /**
+     * @brief get command
+     * 
+     */
     COMMAND_GET,
+    /**
+     * @brief del command
+     * 
+     */
     COMMAND_DEL,
+    /**
+     * @brief set command
+     * 
+     */
     COMMAND_SET
 } command_type_t;
 
@@ -402,31 +418,153 @@ public:
      * @return false on failure
      */   
     bool create_epoll_fd();
+
+    /**
+     * @brief removes a socket from all queues and frees
+     * any data structure associated with the file descriptor
+     * 
+     * @param fd the file descriptor to remove
+     */
     void remove_socket(int fd);
+
+    /**
+     * @brief rebuild the epoll monitor from the set of fd's
+     * 
+     */
     void epoll_rearm();
+
+    /**
+     * @brief rebuild the epoll monitor from the set of fd's
+     * 
+     * This is the unsafe version of the function. the caller
+     * must hold the mutex before calling it.
+     * 
+     */
     void epoll_rearm_unsafe();
+
+    /**
+     * @brief remove all monitoring file descriptors from epoll
+     * 
+     */
     void epoll_empty();
+
+    /**
+     * @brief remove all monitoring file descriptors from epoll
+     * This is the unsafe version of the function, and the caller
+     * must hold the m_epoll_sockets_mtx lock before calling it
+     */
     void epoll_empty_unsafe();
+
+    /**
+     * @brief creates a processing job for a ready to read fd
+     * 
+     * When a file descriptor becomes ready, a job is created
+     * to be posted to a thread-pool.
+     * The job will then read from the file descriptor and then
+     * process it.
+     * 
+     * @param fd file descriptor to be posted for read
+     */
     void create_processing_job(int fd);
+
+    /**
+     * @brief add the state associated with a file descriptor
+     * to the parse queue to be parsed, and the action specified
+     * by the command taken.
+     * 
+     * 
+     * @param pstate is the state associated with the file descriptor
+     * @return true on successful posting
+     * @return false on failure to post
+     */
     bool add_to_parse_and_run_queue(std::shared_ptr<State> pstate);
+
+    /**
+     * @brief add the state associated with a file descriptor to the
+     * work queue which will send the response back to the client.
+     * 
+     * @param pstate is the state associated with the file descriptor
+     * @return true on successful posting
+     * @return false on failure to post
+     */
     bool add_to_write_queue(std::shared_ptr<State> pstate);
 
-
+    /**
+     * @brief given a parsed command, perform the requested operations
+     * 
+     * @param command command after parsing, as received from client
+     * @return std::tuple<bool, std::shared_ptr<AbstractRespObject> > 
+     * a tuple containing two items
+     * 1. has there been a fatal error, which mandates the
+     *    client connection must be closed
+     * 2. output of the operation as an object that can be serialized
+     *    and sent to the client as response.
+     */
     std::tuple<bool, std::shared_ptr<AbstractRespObject> >
         do_operation(std::shared_ptr<AbstractRespObject> command);
-    
+
+    /**
+     * @brief In case of the GET command, perform the action
+     * 
+     * @param pobj command after parsing, as received from client
+     * @return std::tuple<bool, std::shared_ptr<AbstractRespObject> > 
+     * a tuple containing two items
+     * 1. has there been a fatal error, which mandates the
+     *    client connection must be closed
+     * 2. output of the operation as an object that can be serialized
+     *    and sent to the client as response.
+     */    
     std::tuple<bool, std::shared_ptr<AbstractRespObject> >
         do_get(std::shared_ptr<AbstractRespObject> p);
 
+    /**
+     * @brief in case of a SET command, perform the action
+     * 
+     * @param pobj command after parsing, as received from client
+     * @return std::tuple<bool, std::shared_ptr<AbstractRespObject> > 
+     * a tuple containing two items
+     * 1. has there been a fatal error, which mandates the
+     *    client connection must be closed
+     * 2. output of the operation as an object that can be serialized
+     *    and sent to the client as response.
+     */
     std::tuple<bool, std::shared_ptr<AbstractRespObject> >
         do_set(std::shared_ptr<AbstractRespObject> p);
 
+    /**
+     * @brief perform the DEL command
+     * 
+     * @param pobj command after parsing, as received from client
+     * @return std::tuple<bool, std::shared_ptr<AbstractRespObject> > 
+     * a tuple containing two items
+     * 1. has there been a fatal error, which mandates the
+     *    client connection must be closed
+     * 2. output of the operation as an object that can be serialized
+     *    and sent to the client as response.
+     */
     std::tuple<bool, std::shared_ptr<AbstractRespObject> >
         do_del(std::shared_ptr<AbstractRespObject> p);
 
+    /**
+     * @brief delete one variable from the appropriate hash
+     * 
+     * @param pobj command after parsing, as received from the client
+     * @return true on successful deletion
+     * @return false on failure to delete for any reason, including
+     * if the item was not present in the first place.
+     */
     bool do_del_internal(std::shared_ptr<AbstractRespObject> pobj);
 
 
+    /**
+     * @brief the pthread function for the thread that accepts
+     * new connections. A static glue is required because
+     * pthread cannot deal object methods
+     * 
+     * @param arg passed by the pthread, contains the pointer
+     * to the orchestrator object
+     * @return void* returns nullptr
+     */
     static void* accepting_thread_pthread_fn(void* arg)
     {
         Orchestrator* ptr = static_cast<Orchestrator*>(arg);
@@ -434,6 +572,15 @@ public:
         return nullptr;
     }
 
+    /**
+     * @brief the pthread function for the thread that runs
+     * epoll on connections. A static glue is required because
+     * pthread cannot deal object methods
+     * 
+     * @param arg passed by the pthread, contains the pointer
+     * to the orchestrator object
+     * @return void* returns nullptr
+     */
     static void* epoll_thread_pthread_fn(void * arg)
     {
         Orchestrator* ptr = static_cast<Orchestrator*>(arg);
@@ -442,11 +589,56 @@ public:
     }
 
 
+    /**
+     * TODO: Refactor this function, into three different classes
+     * for each command: set, get and del
+     * And those classes should be responsible for both validating
+     * and actual action
+     */
+    /**
+     * @brief given an abstract object, find whether it is a valid
+     * command or not.
+     * 
+     * When a command is received from the client, it is parsed.
+     * After parsing, this function will decide whether it is a valid
+     * command or not
+     * 
+     * @param p the parsed input in object form
+     * @return std::tuple<bool, command_type_t> a tuple of two items:
+     * 1. whether it is valid or not
+     * 2. the type of command if it is valid
+     */
     std::tuple<bool, command_type_t>
         is_valid_command(std::shared_ptr<AbstractRespObject> p);
     
+    /**
+     * @brief Add a file descriptor to queue for epoll
+     * This queue is monitored by the thread which executes
+     * epoll.
+     * The thread is woken up.
+     * 
+     * @param fd file descriptor to monitor for changes
+     */
     void add_to_epoll_queue(int fd);
 
+    /**
+     * @brief Get the partition id of the hash table, based on the
+     * key.
+     * 
+     * For performance reasons, instead of using a single hash,
+     * we use multiple hashes, and the decision to choose the
+     * correct hash is taken based on the first character of the key.
+     * 
+     * This is done because on high load, a single hash would be
+     * affected by lock contention. Using several hashes will
+     * reduce the lock contention.
+     * 
+     * Additionally, reader-writer locks are used to increase
+     * concurrency even more.
+     * 
+     * @param varname name of the variable
+     * @return int partition id of the correct hash to use
+     */
     int get_partition(const std::string& s);
 };
 
