@@ -184,15 +184,19 @@ RespParser::get_array_object()
     
     err = skip_crlf();
     if (ERROR_SUCCESS != err)
+    {
+        delete arrp;
         return std::make_tuple(
             err,
             std::shared_ptr<AbstractRespObject>(nullptr));
+    }
 
     for (int i = 0; i < length; i++)
     {
         auto [err, type] = get_type();
         if (ERROR_SUCCESS != err || RESP_INVALID == type)
         {
+            delete arrp;
             return std::make_tuple(
                 err,
                 std::shared_ptr<AbstractRespObject>(nullptr)
@@ -205,10 +209,13 @@ RespParser::get_array_object()
                 {
                     auto [err, obj1] = get_bulk_string_object();
                     if (ERROR_SUCCESS != err)
+                    {
+                        delete arrp;
                         return std::make_tuple(
                             err,
                             std::shared_ptr<AbstractRespObject>(nullptr)
                         );
+                    }
                     arrp->append(obj1);
                 }
                 break;
@@ -216,10 +223,13 @@ RespParser::get_array_object()
                 {
                     auto [err, obj] = get_array_object();
                     if (ERROR_SUCCESS != err)
+                    {
+                        delete arrp;
                         return std::make_tuple(
                             err,
                             std::shared_ptr<AbstractRespObject>(nullptr)
                         );
+                    }
                     arrp->append(obj);
                 }
                 break;
@@ -227,6 +237,7 @@ RespParser::get_array_object()
                 {
                     std::cerr << "Type " << type << " Not implemented. "\
                             << std::endl;
+                    delete arrp;
                     return std::make_tuple(
                         ERROR_NOT_IMPLEMENTED,
                         std::shared_ptr<AbstractRespObject>(nullptr)
